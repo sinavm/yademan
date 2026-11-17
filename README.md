@@ -1,6 +1,6 @@
 # Yademan | یادمان
 
-A bilingual Persian-English memorial archive for victims of Dey 1404.
+A bilingual Persian-English memorial archive dedicated to keeping names and memories alive. No name should be forgotten.
 
 ## Public release and data status
 
