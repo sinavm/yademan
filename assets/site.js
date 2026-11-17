@@ -135,20 +135,20 @@ document.querySelector('#zoom-in').addEventListener('click',()=>setZoom(targetZo
 document.querySelector('#zoom-out').addEventListener('click',()=>setZoom(targetZoom+.8));
 document.querySelector('#zoom-reset').addEventListener('click',()=>setZoom(14-.75*(14-4.35)));
 
-/* Local memorial music playlist. Audio starts only after an explicit user action. */
+/* Minimal memorial audio player. Request quiet autoplay when the playlist is ready. */
 const musicAudio=new Audio();
-musicAudio.preload='metadata';
-musicAudio.volume=.72;
+musicAudio.preload='auto';
+musicAudio.autoplay=true;
+musicAudio.volume=.12;
 const musicPlay=document.querySelector('#music-play');
 const musicPrev=document.querySelector('#music-prev');
 const musicNext=document.querySelector('#music-next');
-const musicTitle=document.querySelector('#music-track-title');
 const musicProgress=document.querySelector('#music-progress');
 const musicCurrent=document.querySelector('#music-current-time');
 const musicDuration=document.querySelector('#music-duration');
 const musicControls=document.querySelector('#music-controls');
 let musicTracks=[],musicIndex=-1;
-const musicDigits=value=>String(value).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+const musicDigits=value=>String(value).replace(/\\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 function musicClock(value){
  if(!Number.isFinite(value)||value<0)return '۰:۰۰';
  const minutes=Math.floor(value/60),seconds=Math.floor(value%60);
@@ -162,11 +162,9 @@ function updateMusicButtons(){
 function setMusicTrack(index,autoplay=false){
  if(!musicTracks.length)return;
  musicIndex=(index+musicTracks.length)%musicTracks.length;
- const track=musicTracks[musicIndex];
  musicAudio.pause();
- musicAudio.src=track.src;
+ musicAudio.src=musicTracks[musicIndex].src;
  musicAudio.load();
- musicTitle.textContent=track.title;
  musicCurrent.textContent='۰:۰۰';musicDuration.textContent='۰:۰۰';musicProgress.value='0';
  musicPlay.classList.remove('is-playing');musicPlay.setAttribute('aria-label','پخش موسیقی');
  updateMusicButtons();
@@ -175,8 +173,9 @@ function setMusicTrack(index,autoplay=false){
 async function playMusic(){
  if(musicIndex<0&&musicTracks.length)setMusicTrack(0,false);
  if(!musicAudio.src)return;
+ musicAudio.volume=.12;
  try{await musicAudio.play()}
- catch(error){console.error('Yademan music playback failed',error)}
+ catch(error){console.info('Browser blocked automatic audio playback until user interaction.')}
 }
 musicPlay.addEventListener('click',()=>{if(musicAudio.paused)playMusic();else musicAudio.pause()});
 musicPrev.addEventListener('click',()=>setMusicTrack(musicIndex-1,true));
@@ -202,21 +201,10 @@ fetch('./assets/music/playlist.json').then(response=>{
  const entries=Array.isArray(data)?data:data.tracks;
  if(!Array.isArray(entries))throw new Error('invalid playlist');
  musicTracks=entries.filter(track=>track&&typeof track.src==='string'&&
-  (track.src.startsWith('./assets/music/')||track.src.startsWith('assets/music/'))&&
-  typeof track.title==='string').map(track=>({
-   src:track.src,title:track.title,artist:typeof track.artist==='string'?track.artist:''
-  }));
- if(musicTracks.length){
-  setMusicTrack(0,false);
- }else{
-  musicTitle.textContent='موسیقی در دسترس نیست';
-  updateMusicButtons();
- }
-}).catch(()=>{
- musicTitle.textContent='فهرست موسیقی در دسترس نیست';
- updateMusicButtons();
-});
-
+  (track.src.startsWith('./assets/music/')||track.src.startsWith('assets/music/'))).map(track=>({src:track.src}));
+ if(musicTracks.length)setMusicTrack(0,true);
+ else updateMusicButtons();
+}).catch(()=>updateMusicButtons());
 
 function openSearch(){searchOpen=true;searchLayer.classList.add('open');searchLayer.setAttribute('aria-hidden','false');hideName();searchInput.focus()}
 const searchToggle=document.querySelector('#search-toggle');

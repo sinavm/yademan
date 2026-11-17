@@ -47,7 +47,7 @@
 
 
 /* Memorial audio player: a quiet mirror of the globe zoom controls. */
-#music-controls{position:absolute;left:clamp(16px,3vw,34px);bottom:clamp(22px,4vh,38px);z-index:6;width:min(244px,calc(100vw - 112px));padding:7px 9px 5px;border:1px solid #d9bd7b24;border-radius:22px;background:#080c16a8;backdrop-filter:blur(16px);box-shadow:0 8px 30px #0006;opacity:.78;transition:opacity .25s,border-color .25s}
+#music-controls{position:absolute;left:clamp(16px,3vw,34px);bottom:clamp(22px,4vh,38px);z-index:6;width:132px;max-width:calc(100vw - 112px);padding:7px 9px 5px;border:1px solid #d9bd7b24;border-radius:22px;background:#080c16a8;backdrop-filter:blur(16px);box-shadow:0 8px 30px #0006;opacity:.78;transition:opacity .25s,border-color .25s}
 #music-controls:hover,#music-controls:focus-within{opacity:1;border-color:#d9bd7b55}
 .music-actions{display:flex;align-items:center;gap:6px;min-width:0}
 .music-actions button{flex:none;width:32px;height:32px;display:grid;place-items:center;padding:0;border:1px solid #d9bd7b22;border-radius:50%;background:#d9bd7b0b;color:#e9d8b4;font:400 21px/1 Vazirmatn,Tahoma,sans-serif;cursor:pointer;transition:background .2s,border-color .2s,color .2s}
@@ -61,10 +61,10 @@
 #music-progress{display:block;width:100%;height:13px;margin:3px 0 0;accent-color:#c6a66c;cursor:pointer;direction:ltr}
 #music-progress:disabled{opacity:.35;cursor:default}
 .music-time{display:flex;justify-content:space-between;padding:0 2px;color:#988a75;font:400 9px/1.2 Vazirmatn,Tahoma,sans-serif;font-variant-numeric:tabular-nums;direction:ltr}
-@media(max-width:600px){#music-controls{left:14px;bottom:18px;width:min(250px,calc(100vw - 112px));padding:6px 7px 4px;gap:3px}.music-actions{gap:4px}.music-actions button{width:29px;height:29px}.music-actions button.music-play{width:32px;height:32px}#music-track-title{font-size:10px}}
+@media(max-width:600px){#music-controls{left:14px;bottom:18px;width:132px;padding:6px 7px 4px;gap:3px}.music-actions{gap:4px}.music-actions button{width:29px;height:29px}.music-actions button.music-play{width:32px;height:32px}}
 @media(prefers-reduced-motion:reduce){#music-controls,.music-actions button{transition:none}}
 
 @media(max-width:440px){
  #zoom-value{display:none}
- #music-controls{width:min(190px,calc(100vw - 202px))}
+ #music-controls{width:132px}
 }
