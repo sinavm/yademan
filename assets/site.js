@@ -149,7 +149,7 @@ const musicCurrent=document.querySelector('#music-current-time');
 const musicDuration=document.querySelector('#music-duration');
 const musicControls=document.querySelector('#music-controls');
 let musicTracks=[],musicIndex=-1;
-const musicDigits=value=>String(value).replace(/\\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+const musicDigits=value=>String(value).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 function musicClock(value){
  if(!Number.isFinite(value)||value<0)return '۰:۰۰';
  const minutes=Math.floor(value/60),seconds=Math.floor(value%60);
