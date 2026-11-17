@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
 <title id="title">نشان یادمان</title>
-<desc id="desc">شمعی روشن در قاب یادبود با نوری آرام به نشانه زنده نگه داشتن نام کشته شدگان دی ماه ١۴٠۴</desc>
+<desc id="desc">شمعی روشن در قاب یادبود با نوری آرام به نشانه زنده نگه داشتن نام‌ها و خاطره‌ها</desc>
 <defs>
  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e5d5b4"/><stop offset=".52" stop-color="#bca77d"/><stop offset="1" stop-color="#79674e"/></linearGradient>
  <radialGradient id="halo"><stop stop-color="#bba67c" stop-opacity=".22"/><stop offset="1" stop-color="#bba67c" stop-opacity="0"/></radialGradient>
