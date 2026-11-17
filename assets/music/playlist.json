@@ -1,3 +1,9 @@
 {
-  "tracks": []
+  "tracks": [
+    {
+      "title": "آواز استاد شجریان",
+      "artist": "محمدرضا شجریان",
+      "src": "./assets/music/Mohammad%20Reza%20Shajarian-Avaz-II.mp3"
+    }
+  ]
 }
