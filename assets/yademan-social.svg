@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
 <title id="title">یادمان تقدیم به تمام مادران داغدار</title>
-<desc id="desc">یادمان کشته شدگان دی ماه ١۴٠۴</desc>
+<desc id="desc">یادمان تقدیم به تمام مادران داغدار</desc>
 <defs>
  <radialGradient id="bg" cx="50%" cy="45%" r="75%"><stop stop-color="#24202a"/><stop offset=".56" stop-color="#11121b"/><stop offset="1" stop-color="#070910"/></radialGradient>
  <radialGradient id="light"><stop stop-color="#c7b18a" stop-opacity=".2"/><stop offset="1" stop-color="#c7b18a" stop-opacity="0"/></radialGradient>
@@ -25,8 +25,7 @@
  <circle cx="153" cy="-70" r="2.5" fill="#d9c8a9" opacity=".5"/>
 </g>
 <g fill="#e8dfd1" text-anchor="middle" font-family="Vazirmatn,Tahoma,sans-serif" direction="rtl">
- <text x="600" y="420" font-size="58" font-weight="600">یادمان</text>
- <text x="600" y="478" font-size="34" fill="#d3c4a7">هیچ نامی نباید از یاد برود</text>
- <text x="600" y="525" font-size="23" fill="#bcae9a">تقدیم به تمام مادران داغدار</text>
+ <text x="600" y="430" font-size="58" font-weight="600">یادمان</text>
+ <text x="600" y="495" font-size="25" fill="#d3c4a7">تقدیم به تمام مادران داغدار</text>
 </g>
 </svg>
