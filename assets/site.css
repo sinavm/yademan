@@ -62,3 +62,11 @@
 .music-time{display:flex;justify-content:space-between;padding:0 2px;color:#988a75;font:400 9px/1.2 Vazirmatn,Tahoma,sans-serif;font-variant-numeric:tabular-nums;direction:ltr}
 @media(max-width:600px){#music-controls{left:14px;bottom:18px;width:min(250px,calc(100vw - 112px));padding:6px 7px 4px;gap:3px}.music-actions{gap:4px}.music-actions button{width:29px;height:29px}.music-actions button.music-play{width:32px;height:32px}#music-track-title{font-size:10px}#music-track-artist{font-size:8px}}
 @media(prefers-reduced-motion:reduce){#music-controls,.music-actions button{transition:none}}
+
+@media(max-width:440px){
+ #zoom-value{display:none}
+ #music-controls{width:min(210px,calc(100vw - 202px))}
+}
+@media(max-width:360px){
+ .music-track-copy{display:none}
+}
