@@ -24,6 +24,16 @@ jobs:
         uses: actions/configure-pages@v6
       - name: Validate public data
         run: python3 -c "import json; d=json.load(open('data/approved.json')); assert isinstance(d,list); print('Public records:',len(d))"
+      - name: Optimize memorial audio for web delivery
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          audio="assets/music/Mohammad Reza Shajarian-Avaz-II.mp3"
+          if [ -f "$audio" ]; then
+            ffmpeg -hide_banner -loglevel error -y -i "$audio" -vn -codec:a libmp3lame -b:a 112k -ac 2 -ar 44100 "${audio%.mp3}.optimized.mp3"
+            mv "${audio%.mp3}.optimized.mp3" "$audio"
+            ls -lh "$audio"
+          fi
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
