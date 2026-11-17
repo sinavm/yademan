@@ -135,11 +135,10 @@ document.querySelector('#zoom-in').addEventListener('click',()=>setZoom(targetZo
 document.querySelector('#zoom-out').addEventListener('click',()=>setZoom(targetZoom+.8));
 document.querySelector('#zoom-reset').addEventListener('click',()=>setZoom(14-.75*(14-4.35)));
 
-/* Minimal memorial audio player. Request quiet autoplay when the playlist is ready. */
+/* Minimal memorial audio player. Playback starts only after an explicit play-button click. */
 const musicAudio=new Audio();
 musicAudio.preload='auto';
-musicAudio.autoplay=true;
-musicAudio.volume=.12;
+musicAudio.volume=.72;
 const musicPlay=document.querySelector('#music-play');
 const musicPrev=document.querySelector('#music-prev');
 const musicNext=document.querySelector('#music-next');
@@ -173,7 +172,7 @@ function setMusicTrack(index,autoplay=false){
 async function playMusic(){
  if(musicIndex<0&&musicTracks.length)setMusicTrack(0,false);
  if(!musicAudio.src)return;
- musicAudio.volume=.12;
+ musicAudio.volume=.72;
  try{await musicAudio.play()}
  catch(error){console.info('Browser blocked automatic audio playback until user interaction.')}
 }
@@ -202,7 +201,7 @@ fetch('./assets/music/playlist.json').then(response=>{
  if(!Array.isArray(entries))throw new Error('invalid playlist');
  musicTracks=entries.filter(track=>track&&typeof track.src==='string'&&
   (track.src.startsWith('./assets/music/')||track.src.startsWith('assets/music/'))).map(track=>({src:track.src}));
- if(musicTracks.length)setMusicTrack(0,true);
+ if(musicTracks.length)setMusicTrack(0,false);
  else updateMusicButtons();
 }).catch(()=>updateMusicButtons());
 
