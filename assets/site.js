@@ -167,11 +167,15 @@ const musicCurrent=document.querySelector('#music-current-time');
 const musicDuration=document.querySelector('#music-duration');
 const musicControls=document.querySelector('#music-controls');
 const musicActionButtons=musicControls?.querySelectorAll('.music-actions button');
+const musicPlayButton=document.querySelector('#music-play');
+const musicOtherButtons=[document.querySelector('#music-prev'),document.querySelector('#music-next')];
 function runPlayerGlint(){
- musicActionButtons?.forEach(button=>button.classList.add('is-glinting'));
- setTimeout(()=>musicActionButtons?.forEach(button=>button.classList.remove('is-glinting')),1250);
+ musicOtherButtons.forEach(button=>button?.classList.add('is-glinting'));
+ setTimeout(()=>musicOtherButtons.forEach(button=>button?.classList.remove('is-glinting')),1250);
 }
 setTimeout(()=>{
+ musicPlayButton?.classList.add('is-spinning-glint');
+ setTimeout(()=>musicPlayButton?.classList.remove('is-spinning-glint'),17000);
  let glintCount=0;
  const glintInterval=setInterval(()=>{
   runPlayerGlint();glintCount++;
