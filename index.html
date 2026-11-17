@@ -60,6 +60,16 @@
 <input id="search" type="search" autocomplete="off" spellcheck="false" aria-label="جست‌وجوی نام" placeholder="نام را فارسی یا انگلیسی بنویسید…">
 <div id="results"></div>
 </div>
+<section id="music-controls" aria-label="پخش موسیقی یادمان">
+  <div class="music-actions">
+    <button id="music-prev" type="button" aria-label="قطعه قبلی" title="قطعه قبلی" disabled>‹</button>
+    <button id="music-play" class="music-play" type="button" aria-label="پخش موسیقی" title="پخش موسیقی" disabled>▶</button>
+    <button id="music-next" type="button" aria-label="قطعه بعدی" title="قطعه بعدی" disabled>›</button>
+    <div class="music-track-copy"><span id="music-track-title" aria-live="polite">موسیقی یادمان</span><span id="music-track-artist">برای شنیدن آماده است</span></div>
+  </div>
+  <input id="music-progress" type="range" min="0" max="1000" value="0" step="1" aria-label="موقعیت پخش" disabled>
+  <div class="music-time"><span id="music-current-time">۰:۰۰</span><span id="music-duration">۰:۰۰</span></div>
+</section>
 <div id="zoom-controls" aria-label="کنترل بزرگ‌نمایی"><button id="zoom-in" type="button" aria-label="بزرگ‌نمایی">+</button><span id="zoom-value">75%</span><button id="zoom-out" type="button" aria-label="کوچک‌نمایی">−</button><button id="zoom-reset" type="button" aria-label="بازگشت به اندازه اولیه" title="اندازه اولیه">↺</button></div>
 <div id="load-state" role="status" aria-live="polite"><span class="loading-emblem" aria-hidden="true">✦</span><span class="loading-copy">نام‌ها را به خاطر می‌سپاریم</span></div>
 </main>
