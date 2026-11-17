@@ -73,5 +73,7 @@
 
 /* A subtle gold glint travels around the existing player-button outlines. */
 .music-actions button{position:relative;isolation:isolate}
-.music-actions button.is-glinting::after{content:'';position:absolute;inset:-2px;border-radius:inherit;padding:1px;background:conic-gradient(from 0deg,transparent 0deg 337deg,#f4e7c6 350deg,transparent 360deg);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;pointer-events:none;animation:player-border-glint 1.15s linear both}
+.music-actions button.is-glinting::after,.music-actions button.is-spinning-glint::after{content:'';position:absolute;inset:-2px;border-radius:inherit;padding:1px;background:conic-gradient(from 0deg,transparent 0deg 337deg,#f4e7c6 350deg,transparent 360deg);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;pointer-events:none}
+.music-actions button.is-glinting::after{animation:player-border-glint 1.15s linear both}
+.music-actions button.is-spinning-glint::after{animation:player-border-glint .95s linear infinite}
 @keyframes player-border-glint{from{transform:rotate(0)}to{transform:rotate(360deg)}}
