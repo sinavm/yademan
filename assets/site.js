@@ -135,6 +135,92 @@ document.querySelector('#zoom-in').addEventListener('click',()=>setZoom(targetZo
 document.querySelector('#zoom-out').addEventListener('click',()=>setZoom(targetZoom+.8));
 document.querySelector('#zoom-reset').addEventListener('click',()=>setZoom(14-.75*(14-4.35)));
 
+/* Local memorial music playlist. Audio starts only after an explicit user action. */
+const musicAudio=new Audio();
+musicAudio.preload='metadata';
+musicAudio.volume=.72;
+const musicPlay=document.querySelector('#music-play');
+const musicPrev=document.querySelector('#music-prev');
+const musicNext=document.querySelector('#music-next');
+const musicTitle=document.querySelector('#music-track-title');
+const musicArtist=document.querySelector('#music-track-artist');
+const musicProgress=document.querySelector('#music-progress');
+const musicCurrent=document.querySelector('#music-current-time');
+const musicDuration=document.querySelector('#music-duration');
+const musicControls=document.querySelector('#music-controls');
+let musicTracks=[],musicIndex=-1;
+const musicDigits=value=>String(value).replace(/\\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+function musicClock(value){
+ if(!Number.isFinite(value)||value<0)return '۰:۰۰';
+ const minutes=Math.floor(value/60),seconds=Math.floor(value%60);
+ return musicDigits(minutes+':'+String(seconds).padStart(2,'0'));
+}
+function updateMusicButtons(){
+ const ready=musicTracks.length>0;
+ musicPrev.disabled=!ready;musicNext.disabled=!ready;musicPlay.disabled=!ready;
+ musicProgress.disabled=!ready||!Number.isFinite(musicAudio.duration);
+}
+function setMusicTrack(index,autoplay=false){
+ if(!musicTracks.length)return;
+ musicIndex=(index+musicTracks.length)%musicTracks.length;
+ const track=musicTracks[musicIndex];
+ musicAudio.pause();
+ musicAudio.src=track.src;
+ musicAudio.load();
+ musicTitle.textContent=track.title;
+ musicArtist.textContent=track.artist||'یادمان';
+ musicCurrent.textContent='۰:۰۰';musicDuration.textContent='۰:۰۰';musicProgress.value='0';
+ musicPlay.textContent='▶';musicPlay.setAttribute('aria-label','پخش موسیقی');
+ updateMusicButtons();
+ if(autoplay)playMusic();
+}
+async function playMusic(){
+ if(musicIndex<0&&musicTracks.length)setMusicTrack(0,false);
+ if(!musicAudio.src)return;
+ try{await musicAudio.play();musicPlay.textContent='Ⅱ';musicPlay.setAttribute('aria-label','توقف موقت موسیقی')}
+ catch{musicArtist.textContent='پخش ممکن نشد. فرمت فایل را بررسی کن.'}
+}
+musicPlay.addEventListener('click',()=>{if(musicAudio.paused)playMusic();else musicAudio.pause()});
+musicPrev.addEventListener('click',()=>setMusicTrack(musicIndex-1,true));
+musicNext.addEventListener('click',()=>setMusicTrack(musicIndex+1,true));
+musicAudio.addEventListener('play',()=>{musicPlay.textContent='Ⅱ';musicPlay.setAttribute('aria-label','توقف موقت موسیقی')});
+musicAudio.addEventListener('pause',()=>{musicPlay.textContent='▶';musicPlay.setAttribute('aria-label','پخش موسیقی')});
+musicAudio.addEventListener('loadedmetadata',()=>{musicDuration.textContent=musicClock(musicAudio.duration);updateMusicButtons()});
+musicAudio.addEventListener('timeupdate',()=>{
+ musicCurrent.textContent=musicClock(musicAudio.currentTime);
+ if(Number.isFinite(musicAudio.duration)&&musicAudio.duration>0)musicProgress.value=String(Math.round(musicAudio.currentTime/musicAudio.duration*1000));
+});
+musicAudio.addEventListener('ended',()=>setMusicTrack(musicIndex+1,true));
+musicAudio.addEventListener('error',()=>{if(musicIndex>=0)musicArtist.textContent='فایل موسیقی پیدا نشد یا قابل پخش نیست'});
+musicProgress.addEventListener('input',()=>{
+ if(Number.isFinite(musicAudio.duration)&&musicAudio.duration>0)musicAudio.currentTime=(Number(musicProgress.value)/1000)*musicAudio.duration;
+});
+musicControls.addEventListener('pointerdown',e=>e.stopPropagation());
+musicControls.addEventListener('click',e=>e.stopPropagation());
+fetch('./assets/music/playlist.json').then(response=>{
+ if(!response.ok)throw new Error('playlist unavailable');
+ return response.json();
+}).then(data=>{
+ const entries=Array.isArray(data)?data:data.tracks;
+ if(!Array.isArray(entries))throw new Error('invalid playlist');
+ musicTracks=entries.filter(track=>track&&typeof track.src==='string'&&
+  (track.src.startsWith('./assets/music/')||track.src.startsWith('assets/music/'))&&
+  typeof track.title==='string').map(track=>({
+   src:track.src,title:track.title,artist:typeof track.artist==='string'?track.artist:''
+  }));
+ if(musicTracks.length){
+  musicArtist.textContent=musicTracks.length+' قطعه در فهرست';
+  setMusicTrack(0,false);
+ }else{
+  musicArtist.textContent='فایل‌ها را در پوشه موسیقی قرار بده';
+  updateMusicButtons();
+ }
+}).catch(()=>{
+ musicArtist.textContent='فهرست موسیقی در دسترس نیست';
+ updateMusicButtons();
+});
+
+
 function openSearch(){searchOpen=true;searchLayer.classList.add('open');searchLayer.setAttribute('aria-hidden','false');hideName();searchInput.focus()}
 const searchToggle=document.querySelector('#search-toggle');
 searchToggle?.addEventListener('pointerdown',e=>e.stopPropagation());
