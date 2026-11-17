@@ -134,11 +134,11 @@ function renderName(index){
 function showName(index,fromPhoto=false){
  if(index<0||index>=records.length)return;
  if(photoFocusTimer!==null){clearTimeout(photoFocusTimer);photoFocusTimer=null}
- photoFocusActive=false;centerPhotoIndex=-1;nameCard.classList.remove('is-center-following');
+ photoFocusActive=false;centerPhotoIndex=-1;
  renderName(index);
- if(fromPhoto)photoFocusTimer=setTimeout(()=>{photoFocusTimer=null;photoFocusActive=true;centerPhotoIndex=-1;nameCard.classList.add('is-center-following')},5000);
+ if(fromPhoto)photoFocusTimer=setTimeout(()=>{photoFocusTimer=null;photoFocusActive=true;centerPhotoIndex=-1},3000);
 }
-function hideName(){if(photoFocusTimer!==null){clearTimeout(photoFocusTimer);photoFocusTimer=null}photoFocusActive=false;centerPhotoIndex=-1;nameCard.classList.remove('is-center-following');nameCard.classList.remove('visible');selected=-1;if(selectedMarker)selectedMarker.visible=false;}
+function hideName(){if(photoFocusTimer!==null){clearTimeout(photoFocusTimer);photoFocusTimer=null}photoFocusActive=false;centerPhotoIndex=-1;nameCard.classList.remove('visible');selected=-1;if(selectedMarker)selectedMarker.visible=false;}
 const world=document.querySelector('#world');
 world.addEventListener('pointerdown',e=>{if(searchOpen)return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,onPhoto:!!e.target.closest?.('.photo-node')});world.setPointerCapture(e.pointerId);if(pointers.size===2){const p=[...pointers.values()];pinchDistance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);dragging=false;moved=true;return}dragging=true;moved=false;lastX=e.clientX;lastY=e.clientY;pointerDownAt=performance.now();world.style.cursor='grabbing'});
 world.addEventListener('pointermove',e=>{if(!dragging&&pointers.size===0&&camera.position.z<7.2){const h=pick(e.clientX,e.clientY);if(h!==hovered){hovered=h;if(h>=0&&selected<0){selectedMarker.position.fromArray(points.geometry.attributes.position.array,h*3);selectedMarker.visible=true}else if(selected<0&&selectedMarker)selectedMarker.visible=false}}if(pointers.has(e.pointerId)){pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){const p=[...pointers.values()],d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);if(pinchDistance>0)setZoom(currentZoom()+(pinchDistance-d)*.018);pinchDistance=d;return}}if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>2)moved=true;targetY+=dx*.005;targetX+=dy*.004;targetX=Math.max(-1.25,Math.min(1.25,targetX));lastX=e.clientX;lastY=e.clientY});
@@ -160,6 +160,19 @@ const musicProgress=document.querySelector('#music-progress');
 const musicCurrent=document.querySelector('#music-current-time');
 const musicDuration=document.querySelector('#music-duration');
 const musicControls=document.querySelector('#music-controls');
+const musicActionButtons=musicControls?.querySelectorAll('.music-actions button');
+function runPlayerGlint(){
+ musicActionButtons?.forEach(button=>button.classList.add('is-glinting'));
+ setTimeout(()=>musicActionButtons?.forEach(button=>button.classList.remove('is-glinting')),1250);
+}
+setTimeout(()=>{
+ let glintCount=0;
+ const glintInterval=setInterval(()=>{
+  runPlayerGlint();glintCount++;
+  if(glintCount===3)clearInterval(glintInterval);
+ },7000);
+ runPlayerGlint();glintCount=1;
+},3000);
 let musicTracks=[],musicIndex=-1;
 const musicDigits=value=>String(value).replace(/\\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 function musicClock(value){
