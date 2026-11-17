@@ -143,7 +143,6 @@ const musicPlay=document.querySelector('#music-play');
 const musicPrev=document.querySelector('#music-prev');
 const musicNext=document.querySelector('#music-next');
 const musicTitle=document.querySelector('#music-track-title');
-const musicArtist=document.querySelector('#music-track-artist');
 const musicProgress=document.querySelector('#music-progress');
 const musicCurrent=document.querySelector('#music-current-time');
 const musicDuration=document.querySelector('#music-duration');
@@ -168,30 +167,29 @@ function setMusicTrack(index,autoplay=false){
  musicAudio.src=track.src;
  musicAudio.load();
  musicTitle.textContent=track.title;
- musicArtist.textContent=track.artist||'یادمان';
  musicCurrent.textContent='۰:۰۰';musicDuration.textContent='۰:۰۰';musicProgress.value='0';
- musicPlay.textContent='▶';musicPlay.setAttribute('aria-label','پخش موسیقی');
+ musicPlay.classList.remove('is-playing');musicPlay.setAttribute('aria-label','پخش موسیقی');
  updateMusicButtons();
  if(autoplay)playMusic();
 }
 async function playMusic(){
  if(musicIndex<0&&musicTracks.length)setMusicTrack(0,false);
  if(!musicAudio.src)return;
- try{await musicAudio.play();musicPlay.textContent='Ⅱ';musicPlay.setAttribute('aria-label','توقف موقت موسیقی')}
- catch{musicArtist.textContent='پخش ممکن نشد. فرمت فایل را بررسی کن.'}
+ try{await musicAudio.play()}
+ catch(error){console.error('Yademan music playback failed',error)}
 }
 musicPlay.addEventListener('click',()=>{if(musicAudio.paused)playMusic();else musicAudio.pause()});
 musicPrev.addEventListener('click',()=>setMusicTrack(musicIndex-1,true));
 musicNext.addEventListener('click',()=>setMusicTrack(musicIndex+1,true));
-musicAudio.addEventListener('play',()=>{musicPlay.textContent='Ⅱ';musicPlay.setAttribute('aria-label','توقف موقت موسیقی')});
-musicAudio.addEventListener('pause',()=>{musicPlay.textContent='▶';musicPlay.setAttribute('aria-label','پخش موسیقی')});
+musicAudio.addEventListener('play',()=>{musicPlay.classList.add('is-playing');musicPlay.setAttribute('aria-label','توقف موقت موسیقی')});
+musicAudio.addEventListener('pause',()=>{musicPlay.classList.remove('is-playing');musicPlay.setAttribute('aria-label','پخش موسیقی')});
 musicAudio.addEventListener('loadedmetadata',()=>{musicDuration.textContent=musicClock(musicAudio.duration);updateMusicButtons()});
 musicAudio.addEventListener('timeupdate',()=>{
  musicCurrent.textContent=musicClock(musicAudio.currentTime);
  if(Number.isFinite(musicAudio.duration)&&musicAudio.duration>0)musicProgress.value=String(Math.round(musicAudio.currentTime/musicAudio.duration*1000));
 });
 musicAudio.addEventListener('ended',()=>setMusicTrack(musicIndex+1,true));
-musicAudio.addEventListener('error',()=>{if(musicIndex>=0)musicArtist.textContent='فایل موسیقی پیدا نشد یا قابل پخش نیست'});
+musicAudio.addEventListener('error',()=>{if(musicIndex>=0)console.error('Yademan music file could not be loaded')});
 musicProgress.addEventListener('input',()=>{
  if(Number.isFinite(musicAudio.duration)&&musicAudio.duration>0)musicAudio.currentTime=(Number(musicProgress.value)/1000)*musicAudio.duration;
 });
@@ -209,14 +207,13 @@ fetch('./assets/music/playlist.json').then(response=>{
    src:track.src,title:track.title,artist:typeof track.artist==='string'?track.artist:''
   }));
  if(musicTracks.length){
-  musicArtist.textContent=musicTracks.length+' قطعه در فهرست';
   setMusicTrack(0,false);
  }else{
-  musicArtist.textContent='فایل‌ها را در پوشه موسیقی قرار بده';
+  musicTitle.textContent='موسیقی در دسترس نیست';
   updateMusicButtons();
  }
 }).catch(()=>{
- musicArtist.textContent='فهرست موسیقی در دسترس نیست';
+ musicTitle.textContent='فهرست موسیقی در دسترس نیست';
  updateMusicButtons();
 });
 
