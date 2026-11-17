@@ -1,0 +1,21 @@
+YADMAN SOURCE DATA AUDIT
+Input rows: 3301
+Distinct name pairs: 3270
+Duplicate groups requiring manual review: 29
+Rows in excess of unique name pairs: 31
+Empty full-name pairs: 0
+Unnamed extraction columns: 9
+
+Non-empty values by source field
+نام: 3300 of 3301
+نام خانوادگی: 3301 of 3301
+نام پدر: 3034 of 3301
+تاریخ کشته‌شدن: 673 of 3301
+زاده (سن): 620 of 3301
+شهر/روستا و استان: 653 of 3301
+توضیح: 691 of 3301
+
+Policy: no record is approved automatically
+Policy: duplicate candidates are not merged automatically
+Policy: source rows remain unchanged
+Policy: only reviewed records may enter the public dataset

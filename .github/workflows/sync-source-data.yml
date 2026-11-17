@@ -1,0 +1,62 @@
+name: Sync Javidnam source database
+
+on:
+  schedule:
+    # Every three days at 03:17 UTC.
+    - cron: "17 3 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: javidnam-source-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      JAVIDNAM_SOURCE_URL: ${{ secrets.JAVIDNAM_SOURCE_URL || vars.JAVIDNAM_SOURCE_URL }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+
+      - name: Fetch, validate and compare source data
+        run: python scripts/sync_source_data.py
+
+      - name: Open a reviewable database update pull request
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- data/javidnams_data.json; then
+            echo "No database changes; no commit or pull request needed."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          branch="automation/javidnam-sync-${GITHUB_RUN_ID}"
+          git switch -c "$branch"
+          git add data/javidnams_data.json
+          git commit -m "chore(data): sync Javidnam source database"
+          git push --set-upstream origin "$branch"
+
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "chore(data): sync Javidnam source database" \
+            --body "Automated source refresh. The JSON passed the repository's validation checks. Please review the proposed dataset changes and merge to publish them."

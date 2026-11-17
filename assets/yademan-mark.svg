@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">نشان یادمان</title>
+<desc id="desc">شمعی روشن در قاب یادبود با نوری آرام به نشانه زنده نگه داشتن نام کشته شدگان دی ماه ١۴٠۴</desc>
+<defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e5d5b4"/><stop offset=".52" stop-color="#bca77d"/><stop offset="1" stop-color="#79674e"/></linearGradient>
+ <radialGradient id="halo"><stop stop-color="#bba67c" stop-opacity=".22"/><stop offset="1" stop-color="#bba67c" stop-opacity="0"/></radialGradient>
+ <linearGradient id="wax" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#776c64"/><stop offset=".5" stop-color="#d4c8b5"/><stop offset="1" stop-color="#71665f"/></linearGradient>
+</defs>
+<circle cx="256" cy="256" r="245" fill="#090b12"/>
+<circle cx="256" cy="232" r="190" fill="url(#halo)"/>
+<path d="M108 402V238c0-82 66-148 148-148s148 66 148 148v164" fill="none" stroke="url(#gold)" stroke-width="5" opacity=".82"/>
+<path d="M130 402V239c0-70 56-126 126-126s126 56 126 126v163" fill="none" stroke="#d8c9ac" stroke-width="1.5" opacity=".28"/>
+<path d="M93 402h326" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
+<path d="M164 402h184" stroke="#d8c9ac" stroke-width="1" opacity=".35"/>
+<ellipse cx="256" cy="400" rx="82" ry="12" fill="#bba67c" opacity=".12"/>
+<path d="M237 274h38v111h-38z" fill="url(#wax)" stroke="#e4d6be" stroke-opacity=".55" stroke-width="1.5"/>
+<path d="M237 274q19 8 38 0" fill="none" stroke="#f2e7d5" stroke-width="2" opacity=".65"/>
+<path d="M256 274v-19" stroke="#d8c6a7" stroke-width="3" stroke-linecap="round"/>
+<path d="M256 254c-25-26-9-49 0-69 5 18 26 35 0 69z" fill="#d2b986"/>
+<path d="M256 250c-12-15-4-27 0-37 4 11 12 22 0 37z" fill="#f0dfbc"/>
+<path d="M256 181c-20-28-3-53 0-69 8 23 23 42 0 69z" fill="#bca77d" opacity=".18"/>
+<path d="M256 303c-7 14-7 27 0 38 7-11 7-24 0-38z" fill="#f0e4ce" opacity=".12"/>
+<path d="M192 426q64 19 128 0" fill="none" stroke="#bca77d" stroke-width="1.5" opacity=".38"/>
+<circle cx="155" cy="190" r="2.5" fill="#d6c5a5" opacity=".65"/>
+<circle cx="356" cy="173" r="2" fill="#d6c5a5" opacity=".55"/>
+<circle cx="365" cy="310" r="1.8" fill="#d6c5a5" opacity=".4"/>
+<circle cx="148" cy="320" r="1.8" fill="#d6c5a5" opacity=".4"/>
+</svg>

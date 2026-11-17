@@ -1,0 +1,46 @@
+:root{color-scheme:dark;background:#03050b;font-family:Vazirmatn,Tahoma,sans-serif}*{box-sizing:border-box}html,body,#world{width:100%;height:100%;margin:0;overflow:hidden;background:#03050b}body{overscroll-behavior:none}#world{position:relative;isolation:isolate}#universe{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}#name-card{position:absolute;left:50%;bottom:clamp(28px,6vh,70px);transform:translate(-50%,14px);display:flex;align-items:center;gap:16px;padding:14px 18px;min-width:260px;max-width:min(92vw,560px);text-align:right;color:#f1e6cc;background:linear-gradient(135deg,#0b111de8,#080c16d9);border:1px solid #d9bd7b36;border-radius:8px;box-shadow:0 18px 70px #0009,0 0 35px #d9bd7b0c;backdrop-filter:blur(18px);opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s ease}#name-card.visible{opacity:1;transform:translate(-50%,0)}#person-image{width:76px;height:88px;object-fit:cover;object-position:center;border-radius:4px;border:1px solid #d9bd7b55;background:#121722;flex:none}#person-image[hidden],#person-date[hidden]{display:none}.person-copy{min-width:0;display:flex;flex-direction:column;gap:8px}#person-name{display:block;font-size:clamp(17px,2.1vw,23px);font-weight:500;text-shadow:0 0 22px #e6c98b55;white-space:normal}.person-meta{display:flex;flex-wrap:wrap;gap:5px 12px;color:#b8aa8f;font-size:12px;line-height:1.8}.person-meta span+span:before{content:'·';margin-left:9px;color:#8e754b}#search-layer{position:absolute;top:clamp(20px,5vh,48px);left:50%;transform:translate(-50%,-12px);width:min(420px,calc(100vw - 36px));opacity:0;visibility:hidden;transition:opacity .2s,transform .2s;pointer-events:none}#search-layer.open{opacity:1;visibility:visible;transform:translate(-50%,0);pointer-events:auto}#search{width:100%;height:48px;border:1px solid #d9bd7b50;border-radius:3px;background:#080c16df;backdrop-filter:blur(18px);color:#f4ead4;padding:0 17px;font:400 16px Vazirmatn,Tahoma,sans-serif;outline:none;text-align:right;box-shadow:0 10px 60px #0009}#search:focus{border-color:#d9bd7b}#results{max-height:min(55vh,460px);overflow:auto;margin-top:7px;background:#080c16e8;backdrop-filter:blur(18px);border:1px solid #d9bd7b28;border-radius:3px;scrollbar-width:thin;scrollbar-color:#766544 transparent}#results:empty{display:none}.result{display:block;width:100%;padding:11px 16px;border:0;border-bottom:1px solid #ffffff0b;background:transparent;color:#e9dfcc;text-align:right;font:400 15px Vazirmatn,Tahoma,sans-serif;cursor:pointer}.result:last-child{border-bottom:0}.result:hover,.result:focus{background:#d9bd7b18;outline:none;color:#fff}#load-state{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 20%,#03050b55 72%,#03050b 100%);z-index:2}@media(max-width:600px){#name-card{bottom:10vh;gap:11px;padding:11px 13px;min-width:0;width:min(92vw,430px)}#person-image{width:64px;height:76px}#person-name{font-size:17px}.person-meta{font-size:11px}#search{height:45px}.result{padding:10px 13px}}@media(prefers-reduced-motion:reduce){#name-card,#search-layer{transition:none}}
+#zoom-controls{position:absolute;right:clamp(16px,3vw,34px);bottom:clamp(22px,4vh,38px);z-index:4;display:flex;align-items:center;gap:7px;padding:7px;border:1px solid #d9bd7b24;border-radius:30px;background:#080c16a8;backdrop-filter:blur(16px);opacity:.72;transition:opacity .25s}#zoom-controls:hover{opacity:1}#zoom-controls button{width:34px;height:34px;border:1px solid #d9bd7b22;border-radius:50%;background:#d9bd7b0b;color:#e9d8b4;font:400 21px/1 Vazirmatn,Tahoma,sans-serif;cursor:pointer;transition:background .2s,border-color .2s}#zoom-controls button:hover{background:#d9bd7b24;border-color:#d9bd7b80}#zoom-value{min-width:34px;text-align:center;color:#c7b58f;font:400 10px Vazirmatn,Tahoma,sans-serif;font-variant-numeric:tabular-nums}@media(max-width:600px){#zoom-controls{right:14px;bottom:18px;gap:5px;padding:6px}#zoom-controls button{width:32px;height:32px}}
+#photo-field{position:absolute;inset:0;z-index:1;opacity:0;pointer-events:none;transition:opacity .35s ease;overflow:hidden;perspective:900px}
+.photo-node{position:absolute;left:0;top:0;width:clamp(42px,5.1vw,66px);height:clamp(52px,6.3vw,82px);padding:3px;border:1px solid #d9bd7b72;border-radius:7px;background:linear-gradient(145deg,#1d2635,#080c16);box-shadow:0 5px 20px #000a,0 0 13px #d9bd7b20;cursor:pointer;overflow:hidden;will-change:transform;transition:border-color .2s,box-shadow .2s,filter .2s;animation:photo-arrive .45s cubic-bezier(.2,.8,.2,1) both}
+.photo-node img{width:100%;height:100%;display:block;object-fit:cover;border-radius:4px;filter:saturate(.78) contrast(1.04);transition:filter .25s}
+.photo-node:hover,.photo-node.is-selected{z-index:5;border-color:#ffe0a0;box-shadow:0 0 0 2px #ffcf7960,0 0 26px #ffc76e9c,0 8px 30px #000c;filter:brightness(1.18)}
+.photo-node:hover img,.photo-node.is-selected img{filter:saturate(1.12) contrast(1.06)}
+.photo-flare{position:absolute;inset:-40%;pointer-events:none;background:conic-gradient(from 0deg,transparent,#ffe4a044,transparent 35%);opacity:0;transition:opacity .25s;animation:flare-spin 7s linear infinite}
+.photo-node:hover .photo-flare,.photo-node.is-selected .photo-flare{opacity:1}
+.photo-node.image-missing img{display:none}
+@keyframes photo-arrive{from{opacity:0;filter:blur(5px) brightness(1.8)}to{opacity:1;filter:blur(0) brightness(1)}}
+@keyframes flare-spin{to{transform:rotate(360deg)}}
+#name-card{z-index:3}
+#zoom-controls{z-index:6}
+@media(max-width:600px){.photo-node{width:48px;height:60px;padding:2px;border-radius:6px}}
+@media(prefers-reduced-motion:reduce){.photo-node,.photo-flare{animation:none}}
+
+/* Gesture handling is scoped to the memorial surface; image geometry and animation remain unchanged. */
+#world,#photo-field{touch-action:none;overscroll-behavior:contain}
+#photo-field .photo-node{touch-action:none}
+#load-state{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(ellipse at center,#182033 0%,#080d19 42%,#03050b 100%);color:#ead5a5;opacity:1;visibility:visible;transition:opacity .65s ease,visibility .65s ease;pointer-events:none}
+#load-state.is-hidden{opacity:0;visibility:hidden}
+.loading-emblem{display:grid;place-items:center;width:58px;height:58px;border:1px solid #d9bd7b88;border-radius:50%;color:#f4d58e;font-size:31px;text-shadow:0 0 18px #e8bf68,0 0 38px #c99b45;box-shadow:0 0 22px #d9bd7b25,inset 0 0 18px #d9bd7b18;animation:memorial-gold-pulse 2.2s ease-in-out infinite,memorial-gold-turn 9s linear infinite}
+.loading-copy{font:400 15px Vazirmatn,Tahoma,sans-serif;letter-spacing:.02em;color:#e5d4ae;text-shadow:0 0 16px #d9bd7b55}
+@keyframes memorial-gold-pulse{0%,100%{box-shadow:0 0 14px #d9bd7b20,inset 0 0 10px #d9bd7b10;opacity:.78}50%{box-shadow:0 0 34px #d9bd7b70,inset 0 0 22px #d9bd7b30;opacity:1}}
+@keyframes memorial-gold-turn{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#load-state,.loading-emblem{transition:none;animation:none}}
+
+.photo-node img[hidden]{display:none}
+
+/* Discreet entry point for bilingual name lookup; keeps the memorial composition intact. */
+#search-toggle{position:absolute;top:clamp(20px,5vh,48px);right:clamp(16px,3vw,34px);z-index:6;width:42px;height:42px;border:1px solid #d9bd7b45;border-radius:50%;background:#080c16b8;color:#e9d8b4;font:400 25px/1 Vazirmatn,Tahoma,sans-serif;cursor:pointer;backdrop-filter:blur(16px);box-shadow:0 8px 30px #0008;transition:background .2s,border-color .2s}
+#search-toggle:hover,#search-toggle:focus-visible{background:#d9bd7b20;border-color:#d9bd7b;outline:none}
+#search{direction:auto;text-align:start}
+.search-empty{padding:13px 16px;color:#b8aa8f;text-align:center;font:400 13px Vazirmatn,Tahoma,sans-serif}
+@media(max-width:600px){#search-toggle{top:18px;right:14px;width:40px;height:40px}}
+
+#name-card.image-missing #person-image{display:block;background:#03050b;border-color:#d9bd7b55;object-fit:contain}#name-card.image-missing #person-image:not([hidden]){visibility:visible}
+
+/* Yademan memorial identity */
+#memorial-heading{position:absolute;z-index:5;top:clamp(17px,3.2vh,34px);left:50%;transform:translateX(-50%);width:min(82vw,520px);text-align:center;pointer-events:none;color:#e8dfd1;text-shadow:0 2px 22px #000}
+#memorial-heading h1{margin:0;font:600 clamp(21px,3vw,30px) Vazirmatn,Tahoma,sans-serif;letter-spacing:.02em;color:#e2d3b5}
+#memorial-heading p{margin:3px 0 0;font:500 clamp(12px,1.7vw,16px) Vazirmatn,Tahoma,sans-serif;color:#c8b99d}
+#memorial-heading span{display:block;margin-top:2px;font:400 clamp(10px,1.3vw,12px) Vazirmatn,Tahoma,sans-serif;color:#a99a87}
+#search-toggle{top:clamp(22px,4vh,42px)}
+@media(max-width:600px){#memorial-heading{top:19px;width:70vw;left:50%}#memorial-heading h1{font-size:20px}#memorial-heading p{font-size:11px}#memorial-heading span{font-size:10px}#search-toggle{top:18px}}
