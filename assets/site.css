@@ -66,5 +66,5 @@
 
 @media(max-width:440px){
  #zoom-value{display:none}
- #music-controls{width:min(190px,calc(100vw - 202px))}
+ #music-controls{width:132px}
 }
