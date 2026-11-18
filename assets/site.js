@@ -14,11 +14,10 @@ const searchLayer=document.querySelector('#search-layer');
 const searchInput=document.querySelector('#search');
 const results=document.querySelector('#results');
 const entryZoom=14-.75*(14-4.35);
-let records=[], points, pointGeometry, rotationX=0, rotationY=0, targetX=rotationX, targetY=rotationY, targetZoom=entryZoom;
+let records=[], points, pointGeometry, rotationX=(Math.random()-.5)*.9, rotationY=Math.random()*Math.PI*2, targetX=rotationX, targetY=rotationY, targetZoom=entryZoom;
 let entryZoomActive=false,entryZoomStartedAt=0,entryZoomFrom=entryZoom;
 let dragging=false,moved=false,lastX=0,lastY=0,pointerDownAt=0,selected=-1,searchOpen=false;
 let photoFocusTimer=null,photoFocusActive=false,centerPhotoIndex=-1;
-let photoShuffleRank=new Int32Array(0),photoBatchCursor=0,photoBatchAt=0,photoBatch=[];
 const pointers=new Map();let pinchDistance=0;
 const zoomLabel=document.querySelector('#zoom-value');
 function setZoom(value){entryZoomActive=false;targetZoom=Math.max(4.35,Math.min(14,value));if(zoomLabel)zoomLabel.textContent=Math.round((14-targetZoom)/(14-4.35)*100)+'%'}
@@ -111,12 +110,7 @@ function buildPeople(){
  glow.name='glow';root.add(glow);
 }
 async function loadRecords(){
- try{const response=await fetch('./data/javidnams_data.json');if(!response.ok)throw Error('records');const source=await response.json();records=source.map((person,index)=>({...person,full_name:person.name||'نام ثبت نشده',row:index+1}));
-  const photoOrder=Array.from({length:records.length},(_,index)=>index);
-  for(let i=photoOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[photoOrder[i],photoOrder[j]]=[photoOrder[j],photoOrder[i]]}
-  photoShuffleRank=new Int32Array(records.length);photoOrder.forEach((recordIndex,rank)=>{photoShuffleRank[recordIndex]=rank});
-  photoBatchCursor=Math.floor(Math.random()*Math.max(1,records.length));photoBatchAt=0;photoBatch=[];
-  buildPeople()}
+ try{const response=await fetch('./data/javidnams_data.json');if(!response.ok)throw Error('records');const source=await response.json();records=source.map((person,index)=>({...person,full_name:person.name||'نام ثبت نشده',row:index+1}));buildPeople()}
  catch(e){console.error('Yademan records could not be loaded',e)}
  finally{document.querySelector('#load-state')?.classList.add('is-hidden');requestAnimationFrame(()=>startEntryZoom())}
 }
@@ -140,11 +134,11 @@ function renderName(index){
 function showName(index,fromPhoto=false){
  if(index<0||index>=records.length)return;
  if(photoFocusTimer!==null){clearTimeout(photoFocusTimer);photoFocusTimer=null}
- photoFocusActive=false;centerPhotoIndex=-1;
+ photoFocusActive=false;centerPhotoIndex=-1;nameCard.classList.remove('is-center-following');
  renderName(index);
- if(fromPhoto)photoFocusTimer=setTimeout(()=>{photoFocusTimer=null;photoFocusActive=true;centerPhotoIndex=-1},3000);
+ if(fromPhoto)photoFocusTimer=setTimeout(()=>{photoFocusTimer=null;photoFocusActive=true;centerPhotoIndex=-1;nameCard.classList.add('is-center-following')},5000);
 }
-function hideName(){if(photoFocusTimer!==null){clearTimeout(photoFocusTimer);photoFocusTimer=null}photoFocusActive=false;centerPhotoIndex=-1;nameCard.classList.remove('visible');selected=-1;if(selectedMarker)selectedMarker.visible=false;}
+function hideName(){if(photoFocusTimer!==null){clearTimeout(photoFocusTimer);photoFocusTimer=null}photoFocusActive=false;centerPhotoIndex=-1;nameCard.classList.remove('is-center-following');nameCard.classList.remove('visible');selected=-1;if(selectedMarker)selectedMarker.visible=false;}
 const world=document.querySelector('#world');
 world.addEventListener('pointerdown',e=>{if(searchOpen)return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,onPhoto:!!e.target.closest?.('.photo-node')});world.setPointerCapture(e.pointerId);if(pointers.size===2){const p=[...pointers.values()];pinchDistance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);dragging=false;moved=true;return}dragging=true;moved=false;lastX=e.clientX;lastY=e.clientY;pointerDownAt=performance.now();world.style.cursor='grabbing'});
 world.addEventListener('pointermove',e=>{if(!dragging&&pointers.size===0&&camera.position.z<7.2){const h=pick(e.clientX,e.clientY);if(h!==hovered){hovered=h;if(h>=0&&selected<0){selectedMarker.position.fromArray(points.geometry.attributes.position.array,h*3);selectedMarker.visible=true}else if(selected<0&&selectedMarker)selectedMarker.visible=false}}if(pointers.has(e.pointerId)){pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){const p=[...pointers.values()],d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);if(pinchDistance>0)setZoom(currentZoom()+(pinchDistance-d)*.018);pinchDistance=d;return}}if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>2)moved=true;targetY+=dx*.005;targetX+=dy*.004;targetX=Math.max(-1.25,Math.min(1.25,targetX));lastX=e.clientX;lastY=e.clientY});
@@ -166,19 +160,6 @@ const musicProgress=document.querySelector('#music-progress');
 const musicCurrent=document.querySelector('#music-current-time');
 const musicDuration=document.querySelector('#music-duration');
 const musicControls=document.querySelector('#music-controls');
-const musicActionButtons=musicControls?.querySelectorAll('.music-actions button');
-function runPlayerGlint(){
- musicActionButtons?.forEach(button=>button.classList.add('is-glinting'));
- setTimeout(()=>musicActionButtons?.forEach(button=>button.classList.remove('is-glinting')),1250);
-}
-setTimeout(()=>{
- let glintCount=0;
- const glintInterval=setInterval(()=>{
-  runPlayerGlint();glintCount++;
-  if(glintCount===3)clearInterval(glintInterval);
- },7000);
- runPlayerGlint();glintCount=1;
-},3000);
 let musicTracks=[],musicIndex=-1;
 const musicDigits=value=>String(value).replace(/\\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 function musicClock(value){
@@ -372,17 +353,8 @@ function updatePhotoField(now){
   if(x< -60||x>innerWidth+60||y< -60||y>innerHeight+60)continue;
   candidates.push({i,x,y,depth:view.z});
  }
- const visibleById=new Map(candidates.map(item=>[item.i,item]));
- if(now-photoBatchAt>=1800||!photoBatch.length){
-  const rankedCandidates=candidates.slice().sort((a,b)=>photoShuffleRank[a.i]-photoShuffleRank[b.i]);
-  if(rankedCandidates.length){
-   const batchSize=Math.min(56,rankedCandidates.length),start=photoBatchCursor%rankedCandidates.length;
-   photoBatch=Array.from({length:batchSize},(_,offset)=>rankedCandidates[(start+offset)%rankedCandidates.length].i);
-   photoBatchCursor=(start+batchSize)%rankedCandidates.length;
-  }else photoBatch=[];
-  photoBatchAt=now;
- }
- const chosen=photoBatch.map(id=>visibleById.get(id)).filter(Boolean), keep=new Set(chosen.map(item=>item.i));
+ candidates.sort((a,b)=>b.depth-a.depth);
+ const chosen=candidates.slice(0,56), keep=new Set(chosen.map(x=>x.i));
  if(photoFocusActive&&chosen.length){
   const centerX=innerWidth/2,centerY=innerHeight/2;
   const ranked=chosen.map(item=>({...item,centerDistance:Math.hypot(item.x-centerX,item.y-centerY)})).sort((a,b)=>a.centerDistance-b.centerDistance);
