@@ -141,7 +141,7 @@ function validArchivePath(path){
   /^[A-Za-z0-9._/-]+$/.test(value);
 }
 function archiveImageUrl(path){
- const webpPath=path.replace(/\.(?:jpe?g|png|gif|bmp|tiff?)$/i,'')+'.webp';
+ const webpPath=/\.webp$/i.test(path)?path:path.replace(/\.(?:jpe?g|png|gif|bmp|tiff?)$/i,'')+'.webp';
  return IMAGE_BASE+webpPath.split('/').map(part=>encodeURIComponent(part)).join('/');
 }
 function getPersonImage(person){
