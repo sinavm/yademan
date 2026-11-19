@@ -451,7 +451,8 @@ function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
  const fallback=DEFAULT_PERSON_IMAGE;
  const requested=src||fallback;
  const failed=img.dataset.failedSrc===requested;
- const target=failed?fallback:requested;
+ const resolved=img.dataset.resolvedFor===requested&&img.dataset.resolvedSrc?img.dataset.resolvedSrc:requested;
+ const target=failed?fallback:resolved;
  const fallbackAlt=personName?'تصویر پیش‌فرض برای '+personName:'تصویر پیش‌فرض یادمان';
  const alt=target===fallback?fallbackAlt:(personName?'تصویر '+personName:'تصویر فرد');
  if(img.dataset.loadedSrc===target){img.alt=alt;img.hidden=false;node.classList.remove('image-missing');return}
@@ -463,6 +464,7 @@ function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
  img.hidden=false;
  node.classList.remove('image-missing');
  const success=()=>{
+  img.dataset.resolvedFor=requested;img.dataset.resolvedSrc=target;
   img.dataset.loadedSrc=target;
   img.dataset.pendingSrc='';
   node.classList.remove('image-missing');
@@ -472,10 +474,11 @@ function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
    const alternatives=target.startsWith(IMAGE_BASE)?[target.replace(IMAGE_BASE,RAW_IMAGE_BASE),fallback]:[fallback];
    const tryAlternative=index=>{
     const alternative=alternatives[index];
-    if(!alternative){img.dataset.failedSrc=requested;img.dataset.pendingSrc='';img.dataset.loadedSrc='';node.classList.add('image-missing');return}
+    if(!alternative){img.dataset.failedSrc=requested;img.dataset.resolvedFor='';img.dataset.resolvedSrc='';img.dataset.pendingSrc='';img.dataset.loadedSrc='';node.classList.add('image-missing');return}
     img.dataset.pendingSrc=alternative;img.dataset.loadedSrc='';
     img.alt=alternative===fallback?fallbackAlt:alt;
     queuePortraitLoad(img,node,alternative,priority+1,()=>{
+     if(alternative!==fallback){img.dataset.resolvedFor=requested;img.dataset.resolvedSrc=alternative}
      img.dataset.loadedSrc=alternative;img.dataset.pendingSrc='';node.classList.remove('image-missing');
     },()=>tryAlternative(index+1));
    };
