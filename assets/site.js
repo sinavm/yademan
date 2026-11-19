@@ -11,7 +11,7 @@ const photoField=document.querySelector('#photo-field');
 const photoNodes=new Map();
 const isMobileDevice=matchMedia('(max-width:700px)').matches||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const connectionInfo=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
-const isLowEndDevice=isMobileDevice&&((navigator.deviceMemory||4)<=4||(navigator.hardwareConcurrency||4)<=4||!!connectionInfo?.saveData||/2g|3g/.test(connectionInfo?.effectiveType||''));
+const isLowEndDevice=isMobileDevice&&((typeof navigator.deviceMemory==='number'&&navigator.deviceMemory<=4)||(typeof navigator.hardwareConcurrency==='number'&&navigator.hardwareConcurrency<=4)||!!connectionInfo?.saveData||/2g|3g/.test(connectionInfo?.effectiveType||''));
 const pixelRatioCap=isLowEndDevice?1.15:(isMobileDevice?1.4:1.75);
 const frameInterval=isLowEndDevice?1000/30:(isMobileDevice?1000/40:1000/60);
 const photoRefreshInterval=isLowEndDevice?230:(isMobileDevice?165:110);
