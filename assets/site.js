@@ -9,6 +9,52 @@ const personDate=document.querySelector('#person-date');
 const personImage=document.querySelector('#person-image');
 const photoField=document.querySelector('#photo-field');
 const photoNodes=new Map();
+const portraitLoadQueue=[];
+let activePortraitLoads=0;
+const MAX_PORTRAIT_LOADS=5;
+const MAX_PHOTO_NODES=72;
+function pumpPortraitLoads(){
+ portraitLoadQueue.sort((a,b)=>b.priority-a.priority||a.order-b.order);
+ while(activePortraitLoads<MAX_PORTRAIT_LOADS&&portraitLoadQueue.length){
+  const job=portraitLoadQueue.shift();
+  if(job.cancelled||job.img.dataset.pendingSrc!==job.target)continue;
+  if(!job.img.isConnected||(job.node&&job.node.style.visibility==='hidden')){
+   job.img.dataset.pendingSrc='';
+   continue;
+  }
+  job.started=true;
+  activePortraitLoads++;
+  job.img.__portraitLoadJob=job;
+  const finish=success=>{
+   if(job.done)return;
+   job.done=true;
+   activePortraitLoads=Math.max(0,activePortraitLoads-1);
+   if(job.img.__portraitLoadJob===job)job.img.__portraitLoadJob=null;
+   if(job.img.dataset.pendingSrc===job.target){
+    if(success)job.onSuccess();
+    else job.onFailure();
+   }
+   pumpPortraitLoads();
+  };
+  job.img.onload=()=>finish(true);
+  job.img.onerror=()=>finish(false);
+  job.img.src=job.target;
+ }
+}
+function queuePortraitLoad(img,node,target,priority,onSuccess,onFailure){
+ const previous=img.__portraitLoadJob;
+ if(previous&&!previous.done){
+  previous.cancelled=true;
+  if(previous.started){
+   previous.done=true;
+   img.onload=null;img.onerror=null;
+   img.removeAttribute('src');
+   activePortraitLoads=Math.max(0,activePortraitLoads-1);
+  }
+ }
+ portraitLoadQueue.push({img,node,target,priority,order:performance.now(),onSuccess,onFailure,started:false,done:false,cancelled:false});
+ pumpPortraitLoads();
+}
 const IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/main/yademan-images-webp95/';
 const IMAGE_MANIFEST='./data/image_manifest.min.json';
 const DEFAULT_PERSON_IMAGE='./assets/yademan-mark.svg';
@@ -209,7 +255,7 @@ function renderName(index){
  if(index<0||index>=records.length)return;
  const person=records[index];selected=index;
  if(selectedMarker&&points){selectedMarker.position.fromArray(points.geometry.attributes.position.array,index*3);selectedMarker.visible=true}
- personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;personImage.loading='eager';personImage.fetchPriority='high';loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person),person.full_name);nameCard.classList.add('visible');
+ personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;personImage.loading='eager';personImage.fetchPriority='high';loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person),person.full_name,100);nameCard.classList.add('visible');
 }
 function showName(index,fromPhoto=false){
  if(index<0||index>=records.length)return;
@@ -376,7 +422,7 @@ searchLayer.addEventListener('pointerdown',e=>e.stopPropagation());
 function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<700?52:42;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);if(points&&points.material.uniforms)points.material.uniforms.uPixelRatio.value=Math.min(devicePixelRatio,2)}
 addEventListener('resize',resize);
 const clock=new THREE.Clock();
-function loadPhotoWithoutFlash(img,node,src,personName=''){
+function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
  const fallback=DEFAULT_PERSON_IMAGE;
  const requested=src||fallback;
  const failed=img.dataset.failedSrc===requested;
@@ -385,46 +431,39 @@ function loadPhotoWithoutFlash(img,node,src,personName=''){
  const alt=target===fallback?fallbackAlt:(personName?'تصویر '+personName:'تصویر فرد');
  if(img.dataset.loadedSrc===target){img.alt=alt;img.hidden=false;node.classList.remove('image-missing');return}
  if(img.dataset.pendingSrc===target)return;
- // Clear the previous portrait immediately so a previous person's photo never flashes.
  img.dataset.pendingSrc=target;
  img.dataset.loadedSrc='';
  img.removeAttribute('src');
  img.alt=alt;
  img.hidden=false;
  node.classList.remove('image-missing');
- img.onload=()=>{
-  if(img.dataset.pendingSrc!==target)return;
+ const success=()=>{
   img.dataset.loadedSrc=target;
   img.dataset.pendingSrc='';
   node.classList.remove('image-missing');
  };
- img.onerror=()=>{
-  if(img.dataset.pendingSrc!==target)return;
+ const failure=()=>{
   if(target!==fallback){
    img.dataset.failedSrc=requested;
    img.dataset.pendingSrc=fallback;
    img.dataset.loadedSrc='';
    img.alt=fallbackAlt;
-   img.onload=()=>{
-    if(img.dataset.pendingSrc!==fallback)return;
+   queuePortraitLoad(img,node,fallback,priority+1,()=>{
     img.dataset.loadedSrc=fallback;
     img.dataset.pendingSrc='';
     node.classList.remove('image-missing');
-   };
-   img.onerror=()=>{
-    if(img.dataset.pendingSrc!==fallback)return;
+   },()=>{
     img.dataset.pendingSrc='';
     img.dataset.loadedSrc='';
     node.classList.add('image-missing');
-   };
-   img.src=fallback;
+   });
    return;
   }
   img.dataset.pendingSrc='';
   img.dataset.loadedSrc='';
   node.classList.add('image-missing');
  };
- img.src=target;
+ queuePortraitLoad(img,node,target,priority,success,failure);
 }
 function updatePhotoField(now){
  const reveal=THREE.MathUtils.smoothstep(6.9-camera.position.z,0,1);
@@ -473,11 +512,28 @@ function updatePhotoField(now){
   const image=node.querySelector('img');
   if(priorityIds.has(item.i)){image.loading='eager';image.fetchPriority='high'}
   else{image.loading='lazy';image.fetchPriority='low'}
-  loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i]),records[item.i].full_name);
+  loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i]),records[item.i].full_name,priorityIds.has(item.i)?50:0);
   node.style.visibility='visible';node.style.opacity='1';
   node.style.transform=`translate3d(${item.x}px,${item.y}px,0) translate(-50%,-50%) scale(${scale})`;
   node.classList.toggle('is-selected',item.i===selected);
+  photoNodes.delete(item.i);photoNodes.set(item.i,node);
  }
+ while(photoNodes.size>MAX_PHOTO_NODES){
+  let removed=false;
+  for(const [id,node] of photoNodes){
+   if(node.style.visibility==='hidden'){
+    const img=node.querySelector('img');
+    if(img&&img.__portraitLoadJob&&!img.__portraitLoadJob.done){
+     const job=img.__portraitLoadJob;job.cancelled=true;job.done=true;
+     img.onload=null;img.onerror=null;img.removeAttribute('src');
+     activePortraitLoads=Math.max(0,activePortraitLoads-1);
+    }
+    node.remove();photoNodes.delete(id);removed=true;break;
+   }
+  }
+  if(!removed)break;
+ }
+ pumpPortraitLoads();
 }
 function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime();rotationX+=(targetX-rotationX)*.055;rotationY+=(targetY-rotationY)*.055;root.rotation.x=rotationX+Math.sin(t*.12)*.018;root.rotation.y=rotationY+t*.025;stars.rotation.y=-t*.003;stars.rotation.x=Math.sin(t*.07)*.018;if(entryZoomActive){const progress=Math.min(1,(performance.now()-entryZoomStartedAt)/2600),eased=progress*progress*(3-2*progress);camera.position.z=entryZoomFrom+(4.35-entryZoomFrom)*eased;if(progress>=1){camera.position.z=4.35;targetZoom=4.35;entryZoomActive=false}}else camera.position.z+=(targetZoom-camera.position.z)*.12;if(zoomLabel)zoomLabel.textContent=Math.round((14-camera.position.z)/(14-4.35)*100)+'%';if(points){points.material.uniforms.uTime.value=t;const glow=root.getObjectByName('glow');if(glow)glow.material.opacity=.09+Math.sin(t*1.35)*.035;if(selectedMarker&&selectedMarker.visible){const pulse=1+Math.sin(t*4.8)*.12;selectedMarker.scale.setScalar(pulse);selectedMarker.children[1].rotation.z=t*.65;selectedMarker.children[2].material.opacity=.09+Math.sin(t*4.8)*.045}}updatePhotoField(performance.now());renderer.render(scene,camera)}
 animate();
