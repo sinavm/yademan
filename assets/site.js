@@ -512,8 +512,8 @@ function updatePhotoField(now){
   const image=node.querySelector('img');
   if(priorityIds.has(item.i)){image.loading='eager';image.fetchPriority='high'}
   else{image.loading='lazy';image.fetchPriority='low'}
-  loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i]),records[item.i].full_name,priorityIds.has(item.i)?50:0);
   node.style.visibility='visible';node.style.opacity='1';
+  loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i]),records[item.i].full_name,priorityIds.has(item.i)?50:0);
   node.style.transform=`translate3d(${item.x}px,${item.y}px,0) translate(-50%,-50%) scale(${scale})`;
   node.classList.toggle('is-selected',item.i===selected);
   photoNodes.delete(item.i);photoNodes.set(item.i,node);
