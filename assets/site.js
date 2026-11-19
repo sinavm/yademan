@@ -9,7 +9,7 @@ const personDate=document.querySelector('#person-date');
 const personImage=document.querySelector('#person-image');
 const photoField=document.querySelector('#photo-field');
 const photoNodes=new Map();
-const IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/main/yademan-images/';
+const IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/main/yademan-images-webp95/';
 const IMAGE_MANIFEST=IMAGE_BASE+'manifest.csv';
 const DEFAULT_PERSON_IMAGE='./assets/yademan-mark.svg';
 let personImages=new Map(), recordNameCounts=new Map();
@@ -141,7 +141,8 @@ function validArchivePath(path){
   /^[A-Za-z0-9._/-]+$/.test(value);
 }
 function archiveImageUrl(path){
- return IMAGE_BASE+path.split('/').map(part=>encodeURIComponent(part)).join('/');
+ const webpPath=path.replace(/\.(?:jpe?g|png|gif|bmp|tiff?)$/i,'')+'.webp';
+ return IMAGE_BASE+webpPath.split('/').map(part=>encodeURIComponent(part)).join('/');
 }
 function getPersonImage(person){
  const name=normalizeName(person.full_name||person.name||'');
