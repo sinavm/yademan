@@ -9,6 +9,10 @@ const personDate=document.querySelector('#person-date');
 const personImage=document.querySelector('#person-image');
 const photoField=document.querySelector('#photo-field');
 const photoNodes=new Map();
+const IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/main/yademan-images/';
+const IMAGE_MANIFEST=IMAGE_BASE+'manifest.csv';
+const DEFAULT_PERSON_IMAGE='./assets/yademan-mark.svg';
+let personImages=new Map(), recordNameCounts=new Map();
 let photoRefreshAt=0, hovered=-1, selectedMarker=null;
 const searchLayer=document.querySelector('#search-layer');
 const searchInput=document.querySelector('#search');
@@ -109,9 +113,83 @@ function buildPeople(){
  const glow=new THREE.Points(pointGeometry,new THREE.PointsMaterial({size:innerWidth<700?.11:.085,color:0xb18b50,transparent:true,opacity:.12,sizeAttenuation:true,depthWrite:false,blending:THREE.AdditiveBlending}));
  glow.name='glow';root.add(glow);
 }
+function parseCSV(text){
+ const rows=[];let row=[],field='',quoted=false;
+ for(let i=0;i<text.length;i++){
+  const char=text[i];
+  if(quoted){
+   if(char==='"'&&text[i+1]==='"'){field+='"';i++}
+   else if(char==='"')quoted=false;
+   else field+=char;
+  }else if(char==='"'&&field==='')quoted=true;
+  else if(char===','){row.push(field);field=''}
+  else if(char==='\n'){row.push(field);rows.push(row);row=[];field=''}
+  else if(char!=='\r')field+=char;
+ }
+ if(field!==''||row.length){row.push(field);rows.push(row)}
+ if(!rows.length)return [];
+ const headers=rows.shift().map(value=>value.replace(/^\uFEFF/,'').trim());
+ return rows.filter(values=>values.some(value=>value.trim()!=='')).map(values=>
+  Object.fromEntries(headers.map((header,index)=>[header,values[index]??'']))
+ );
+}
+function validArchivePath(path){
+ if(typeof path!=='string'||!path.trim())return false;
+ const value=path.trim();
+ return value.startsWith('images/')&&!value.includes('\\')&&
+  !value.split('/').some(part=>!part||part==='.'||part==='..')&&
+  /^[A-Za-z0-9._/-]+$/.test(value);
+}
+function archiveImageUrl(path){
+ return IMAGE_BASE+path.split('/').map(part=>encodeURIComponent(part)).join('/');
+}
+function getPersonImage(person){
+ const name=normalizeName(person.full_name||person.name||'');
+ const matches=personImages.get(name)||[];
+ // Repeated names in either source are resolved only by the original source URL.
+ const uniqueRecord=recordNameCounts.get(name)===1;
+ const match=matches.length===1&&uniqueRecord?matches[0]:matches.find(item=>item.sourceUrl&&item.sourceUrl===person.image);
+ return match?archiveImageUrl(match.path):'';
+}
+async function loadImageManifest(){
+ try{
+  const response=await fetch(IMAGE_MANIFEST,{mode:'cors',credentials:'omit'});
+  if(!response.ok)throw new Error('image manifest '+response.status);
+  const rows=parseCSV((await response.text()).replace(/^\uFEFF/,''));
+  const next=new Map();
+  for(const row of rows){
+   const name=normalizeName(row.record_name||'');
+   const path=(row.local_path||'').trim();
+   const status=(row.status||'').trim().toUpperCase();
+   if(!name||status.startsWith('FAILED')||!validArchivePath(path))continue;
+   const matches=next.get(name)||[];
+   matches.push({path,sourceUrl:(row.source_url||'').trim()});
+   next.set(name,matches);
+  }
+  personImages=next;
+  console.info('Yademan image archive loaded',personImages.size,'unique names');
+ }catch(error){
+  personImages=new Map();
+  console.error('Yademan image archive could not be loaded; default portraits will be used',error);
+ }
+}
 async function loadRecords(){
- try{const response=await fetch('./data/javidnams_data.json');if(!response.ok)throw Error('records');const source=await response.json();records=source.map((person,index)=>({...person,full_name:person.name||'نام ثبت نشده',row:index+1}));buildPeople()}
- catch(e){console.error('Yademan records could not be loaded',e)}
+ try{
+  const [manifestResult,recordsResult]=await Promise.allSettled([
+   loadImageManifest(),
+   fetch('./data/javidnams_data.json').then(response=>{if(!response.ok)throw Error('records');return response.json()})
+  ]);
+  if(recordsResult.status!=='fulfilled')throw recordsResult.reason;
+  const source=recordsResult.value;
+  records=source.map((person,index)=>({...person,full_name:person.name||'نام ثبت نشده',row:index+1}));
+  recordNameCounts=new Map();
+  for(const person of records){
+   const name=normalizeName(person.full_name);
+   recordNameCounts.set(name,(recordNameCounts.get(name)||0)+1);
+  }
+  if(manifestResult.status!=='fulfilled')console.error('Yademan image manifest failed',manifestResult.reason);
+  buildPeople();
+ }catch(e){console.error('Yademan records could not be loaded',e)}
  finally{document.querySelector('#load-state')?.classList.add('is-hidden');requestAnimationFrame(()=>startEntryZoom())}
 }
 loadRecords();
@@ -129,7 +207,7 @@ function renderName(index){
  if(index<0||index>=records.length)return;
  const person=records[index];selected=index;
  if(selectedMarker&&points){selectedMarker.position.fromArray(points.geometry.attributes.position.array,index*3);selectedMarker.visible=true}
- personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;loadPhotoWithoutFlash(personImage,nameCard,person.image||'');nameCard.classList.add('visible');
+ personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person),person.full_name);nameCard.classList.add('visible');
 }
 function showName(index,fromPhoto=false){
  if(index<0||index>=records.length)return;
@@ -296,41 +374,55 @@ searchLayer.addEventListener('pointerdown',e=>e.stopPropagation());
 function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<700?52:42;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);if(points&&points.material.uniforms)points.material.uniforms.uPixelRatio.value=Math.min(devicePixelRatio,2)}
 addEventListener('resize',resize);
 const clock=new THREE.Clock();
-function loadPhotoWithoutFlash(img,node,src){
- if(!src){
-  img.dataset.pendingSrc='';
-  img.dataset.loadedSrc='';
-  img.removeAttribute('src');
-  img.hidden=false;
-  node.classList.add('image-missing');
-  return;
- }
- if(img.dataset.loadedSrc===src){img.hidden=false;node.classList.remove('image-missing');return}
- if(img.dataset.pendingSrc===src)return;
- // Never leave the previous person's photo visible while a new image is loading.
- img.dataset.pendingSrc=src;
+function loadPhotoWithoutFlash(img,node,src,personName=''){
+ const fallback=DEFAULT_PERSON_IMAGE;
+ const requested=src||fallback;
+ const failed=img.dataset.failedSrc===requested;
+ const target=failed?fallback:requested;
+ const fallbackAlt=personName?'تصویر پیش‌فرض برای '+personName:'تصویر پیش‌فرض یادمان';
+ const alt=target===fallback?fallbackAlt:(personName?'تصویر '+personName:'تصویر فرد');
+ if(img.dataset.loadedSrc===target){img.alt=alt;img.hidden=false;node.classList.remove('image-missing');return}
+ if(img.dataset.pendingSrc===target)return;
+ // Clear the previous portrait immediately so a previous person's photo never flashes.
+ img.dataset.pendingSrc=target;
  img.dataset.loadedSrc='';
  img.removeAttribute('src');
+ img.alt=alt;
  img.hidden=false;
- node.classList.add('image-missing');
- const pending=new Image();
- pending.onload=()=>{
-  if(img.dataset.pendingSrc!==src)return;
-  img.src=pending.src;
-  img.dataset.loadedSrc=src;
+ node.classList.remove('image-missing');
+ img.onload=()=>{
+  if(img.dataset.pendingSrc!==target)return;
+  img.dataset.loadedSrc=target;
   img.dataset.pendingSrc='';
-  img.hidden=false;
   node.classList.remove('image-missing');
  };
- pending.onerror=()=>{
-  if(img.dataset.pendingSrc!==src)return;
+ img.onerror=()=>{
+  if(img.dataset.pendingSrc!==target)return;
+  if(target!==fallback){
+   img.dataset.failedSrc=requested;
+   img.dataset.pendingSrc=fallback;
+   img.dataset.loadedSrc='';
+   img.alt=fallbackAlt;
+   img.onload=()=>{
+    if(img.dataset.pendingSrc!==fallback)return;
+    img.dataset.loadedSrc=fallback;
+    img.dataset.pendingSrc='';
+    node.classList.remove('image-missing');
+   };
+   img.onerror=()=>{
+    if(img.dataset.pendingSrc!==fallback)return;
+    img.dataset.pendingSrc='';
+    img.dataset.loadedSrc='';
+    node.classList.add('image-missing');
+   };
+   img.src=fallback;
+   return;
+  }
   img.dataset.pendingSrc='';
   img.dataset.loadedSrc='';
-  img.removeAttribute('src');
-  img.hidden=false;
   node.classList.add('image-missing');
  };
- pending.src=src;
+ img.src=target;
 }
 function updatePhotoField(now){
  const reveal=THREE.MathUtils.smoothstep(6.9-camera.position.z,0,1);
@@ -344,7 +436,7 @@ function updatePhotoField(now){
  const attr=pointGeometry.attributes.position;
  const v=new THREE.Vector3(),view=new THREE.Vector3(),projected=new THREE.Vector3();
  for(let i=0;i<records.length;i++){
-  const person=records[i];if(!person.image)continue;
+  const person=records[i];
   v.fromBufferAttribute(attr,i).applyMatrix4(root.matrixWorld);
   view.copy(v).applyMatrix4(camera.matrixWorldInverse);
   if(view.z>-.05)continue;
@@ -369,13 +461,13 @@ function updatePhotoField(now){
   let node=photoNodes.get(item.i);
   if(!node){
    node=document.createElement('button');node.type='button';node.className='photo-node';node.setAttribute('aria-label',records[item.i].full_name);
-   const img=document.createElement('img');img.loading='eager';img.decoding='async';img.alt='';img.hidden=true;node.append(img);
+   const img=document.createElement('img');img.loading='lazy';img.decoding='async';img.alt='تصویر '+records[item.i].full_name;img.hidden=true;node.append(img);
    const flare=document.createElement('span');flare.className='photo-flare';node.append(flare);
    node.addEventListener('click',e=>{e.stopPropagation();showName(item.i,true)});
    photoField.append(node);photoNodes.set(item.i,node);
   }
   const scale=THREE.MathUtils.clamp(1.35-Math.abs(item.depth)/18,.78,1.15);
-  loadPhotoWithoutFlash(node.querySelector('img'),node,records[item.i].image);
+  loadPhotoWithoutFlash(node.querySelector('img'),node,getPersonImage(records[item.i]),records[item.i].full_name);
   node.style.visibility='visible';node.style.opacity='1';
   node.style.transform=`translate3d(${item.x}px,${item.y}px,0) translate(-50%,-50%) scale(${scale})`;
   node.classList.toggle('is-selected',item.i===selected);
