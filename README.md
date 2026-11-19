@@ -16,13 +16,6 @@ not establish reuse permission. Review provenance, identity, image rights,
 and privacy before describing or treating any item as verified. See
 `docs/data-rights-policy.md` and `docs/content-policy.md`.
 
-## Image assets
-
-- Downloaded photographs are stored in the repository as WebP files under `images/` (3,570 files).
-- Dataset records use local WebP paths whenever a matching downloaded image exists; source images that could not be downloaded remain on their original URL (312 records in the imported snapshot).
-- `data/image-map.json` maps known source URLs to repository assets, and the source-sync workflow applies that map so later data refreshes keep using local WebP files.
-- Image provenance, identity, privacy, and reuse rights still require review before republication; see the data-rights and content policies below.
-
 ## Stack
 
 - Semantic HTML
