@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "data" / "javidnams_data.json"
+IMAGE_MAP = ROOT / "data" / "image-map.json"
 MAX_BYTES = 20 * 1024 * 1024
 MIN_RECORDS = 100
 MIN_NAME_RATIO = 0.99
@@ -102,8 +103,19 @@ def validate_records(records: object, previous_count: int | None = None) -> list
         image = row.get("image", "")
         if image:
             image_url = urlsplit(image)
-            if image_url.scheme not in {"http", "https"} or not image_url.netloc:
-                raise ValueError(f"Record {index} has an invalid image URL")
+            if image_url.scheme in {"http", "https"} and image_url.netloc:
+                pass
+            elif (
+                image_url.scheme
+                or image_url.netloc
+                or not image.startswith("./images/")
+                or not image.lower().endswith(".webp")
+            ):
+                raise ValueError(f"Record {index} has an invalid image URL or local WebP path")
+            else:
+                local_image = (ROOT / image.removeprefix("./")).resolve()
+                if ROOT not in local_image.parents or not local_image.is_file():
+                    raise ValueError(f"Record {index} references a missing local image")
 
     ratio = valid_names / len(records)
     if ratio < MIN_NAME_RATIO:
@@ -111,6 +123,23 @@ def validate_records(records: object, previous_count: int | None = None) -> list
             f"Only {valid_names}/{len(records)} records have a non-empty name; "
             "refusing the update"
         )
+    return records
+
+
+def localize_images(records: list[dict]) -> list[dict]:
+    """Replace known source image URLs with checked-in WebP assets."""
+    if not IMAGE_MAP.exists():
+        return records
+    mapping = json.loads(IMAGE_MAP.read_text(encoding="utf-8"))
+    if not isinstance(mapping, dict):
+        raise ValueError("data/image-map.json must contain a JSON object")
+    for index, row in enumerate(records):
+        image = row.get("image", "")
+        local_path = mapping.get(image) if image else None
+        if local_path:
+            if not isinstance(local_path, str) or not local_path.startswith("./images/"):
+                raise ValueError(f"Image map entry for record {index} is invalid")
+            row["image"] = local_path
     return records
 
 
@@ -133,6 +162,7 @@ def main() -> int:
 
     current = json.loads(TARGET.read_text(encoding="utf-8")) if TARGET.exists() else []
     current_count = len(current) if isinstance(current, list) else None
+    incoming = localize_images(incoming)
     records = validate_records(incoming, current_count)
 
     if isinstance(current, list) and canonical_json(records) == canonical_json(current):
