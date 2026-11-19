@@ -38,9 +38,10 @@ function pumpPortraitLoads(){
  portraitLoadQueue.sort((a,b)=>b.priority-a.priority||a.order-b.order);
  while(activePortraitLoads<MAX_PORTRAIT_LOADS&&portraitLoadQueue.length){
   const job=portraitLoadQueue.shift();
-  if(job.cancelled||job.img.dataset.pendingSrc!==job.target)continue;
+  if(job.cancelled||job.img.dataset.pendingSrc!==job.target){if(job.img.__portraitLoadJob===job)job.img.__portraitLoadJob=null;continue}
   if(!job.img.isConnected||(job.node&&job.node.style.visibility==='hidden')){
    job.img.dataset.pendingSrc='';
+   if(job.img.__portraitLoadJob===job)job.img.__portraitLoadJob=null;
    continue;
   }
   job.started=true;
