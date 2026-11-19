@@ -58,7 +58,12 @@ function pumpPortraitLoads(){
    }
    pumpPortraitLoads();
   };
-  job.img.onload=()=>finish(true);
+  job.img.onload=()=>{
+   const image=job.img;
+   if(typeof image.decode==='function'){
+    image.decode().then(()=>finish(true),()=>finish(false));
+   }else finish(true);
+  };
   job.img.onerror=()=>finish(false);
   job.img.src=job.target;
  }
@@ -459,14 +464,15 @@ function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
  if(img.dataset.pendingSrc===target)return;
  img.dataset.pendingSrc=target;
  img.dataset.loadedSrc='';
- img.removeAttribute('src');
- img.alt=alt;
- img.hidden=false;
+ img.hidden=true;
+ img.alt='';
  node.classList.remove('image-missing');
  const success=()=>{
   img.dataset.resolvedFor=requested;img.dataset.resolvedSrc=target;
   img.dataset.loadedSrc=target;
   img.dataset.pendingSrc='';
+  img.alt=alt;
+  img.hidden=false;
   node.classList.remove('image-missing');
  };
  const failure=()=>{
@@ -476,10 +482,11 @@ function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
     const alternative=alternatives[index];
     if(!alternative){img.dataset.failedSrc=requested;img.dataset.resolvedFor='';img.dataset.resolvedSrc='';img.dataset.pendingSrc='';img.dataset.loadedSrc='';node.classList.add('image-missing');return}
     img.dataset.pendingSrc=alternative;img.dataset.loadedSrc='';
-    img.alt=alternative===fallback?fallbackAlt:alt;
     queuePortraitLoad(img,node,alternative,priority+1,()=>{
      if(alternative!==fallback){img.dataset.resolvedFor=requested;img.dataset.resolvedSrc=alternative}
-     img.dataset.loadedSrc=alternative;img.dataset.pendingSrc='';node.classList.remove('image-missing');
+     img.dataset.loadedSrc=alternative;img.dataset.pendingSrc='';
+     img.alt=alternative===fallback?fallbackAlt:alt;img.hidden=false;
+     node.classList.remove('image-missing');
     },()=>tryAlternative(index+1));
    };
    tryAlternative(0);
