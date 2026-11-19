@@ -9,10 +9,31 @@ const personDate=document.querySelector('#person-date');
 const personImage=document.querySelector('#person-image');
 const photoField=document.querySelector('#photo-field');
 const photoNodes=new Map();
+const isMobileDevice=matchMedia('(max-width:700px)').matches||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const connectionInfo=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+const isLowEndDevice=isMobileDevice&&((navigator.deviceMemory||4)<=4||(navigator.hardwareConcurrency||4)<=4||!!connectionInfo?.saveData||/2g|3g/.test(connectionInfo?.effectiveType||''));
+const pixelRatioCap=isLowEndDevice?1.15:(isMobileDevice?1.4:1.75);
+const frameInterval=isLowEndDevice?1000/30:(isMobileDevice?1000/40:1000/60);
+const photoRefreshInterval=isLowEndDevice?230:(isMobileDevice?165:110);
+const visiblePhotoLimit=isLowEndDevice?30:(isMobileDevice?40:56);
+const portraitNodeLimit=isLowEndDevice?40:(isMobileDevice?52:72);
+const portraitLoadLimit=isLowEndDevice?3:(isMobileDevice?4:5);
 const portraitLoadQueue=[];
 let activePortraitLoads=0;
-const MAX_PORTRAIT_LOADS=5;
-const MAX_PHOTO_NODES=72;
+let lastFrameAt=0;
+const MAX_PORTRAIT_LOADS=portraitLoadLimit;
+const MAX_PHOTO_NODES=portraitNodeLimit;
+function cancelPortraitLoad(img){
+ const job=img?.__portraitLoadJob;
+ if(!job||job.done)return;
+ job.cancelled=true;job.done=true;
+ if(job.started){
+  img.onload=null;img.onerror=null;img.removeAttribute('src');
+  activePortraitLoads=Math.max(0,activePortraitLoads-1);
+ }
+ if(img.dataset.pendingSrc===job.target)img.dataset.pendingSrc='';
+ img.__portraitLoadJob=null;
+}
 function pumpPortraitLoads(){
  portraitLoadQueue.sort((a,b)=>b.priority-a.priority||a.order-b.order);
  while(activePortraitLoads<MAX_PORTRAIT_LOADS&&portraitLoadQueue.length){
@@ -55,7 +76,8 @@ function queuePortraitLoad(img,node,target,priority,onSuccess,onFailure){
  portraitLoadQueue.push({img,node,target,priority,order:performance.now(),onSuccess,onFailure,started:false,done:false,cancelled:false});
  pumpPortraitLoads();
 }
-const IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/main/yademan-images-webp95/';
+const IMAGE_BASE='https://cdn.jsdelivr.net/gh/ana-pic/JavidNaman@3c2505a3ab614064d6dc8a362166050f98427a7f/yademan-images-webp95/';
+const RAW_IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/3c2505a3ab614064d6dc8a362166050f98427a7f/yademan-images-webp95/';
 const IMAGE_MANIFEST='./data/image_manifest.min.json';
 const DEFAULT_PERSON_IMAGE='./assets/yademan-mark.svg';
 let personImages=new Map(), recordNameCounts=new Map();
@@ -77,8 +99,8 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x03050b);
 const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,100);
 camera.position.set(0,0,targetZoom);
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const renderer=new THREE.WebGLRenderer({canvas,antialias:!isLowEndDevice,alpha:false,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,pixelRatioCap));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 const root=new THREE.Group();scene.add(root);
@@ -419,7 +441,7 @@ searchInput.addEventListener('input',()=>drawResults(searchInput.value));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSearch();hideName()}else if(e.key==='/'&&!searchOpen&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();openSearch()}});
 searchLayer.addEventListener('pointerdown',e=>e.stopPropagation());
 
-function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<700?52:42;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);if(points&&points.material.uniforms)points.material.uniforms.uPixelRatio.value=Math.min(devicePixelRatio,2)}
+function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<700?52:42;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,pixelRatioCap));renderer.setSize(innerWidth,innerHeight);if(points&&points.material.uniforms)points.material.uniforms.uPixelRatio.value=Math.min(devicePixelRatio,pixelRatioCap)}
 addEventListener('resize',resize);
 const clock=new THREE.Clock();
 function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
@@ -444,24 +466,20 @@ function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
  };
  const failure=()=>{
   if(target!==fallback){
-   img.dataset.failedSrc=requested;
-   img.dataset.pendingSrc=fallback;
-   img.dataset.loadedSrc='';
-   img.alt=fallbackAlt;
-   queuePortraitLoad(img,node,fallback,priority+1,()=>{
-    img.dataset.loadedSrc=fallback;
-    img.dataset.pendingSrc='';
-    node.classList.remove('image-missing');
-   },()=>{
-    img.dataset.pendingSrc='';
-    img.dataset.loadedSrc='';
-    node.classList.add('image-missing');
-   });
+   const alternatives=target.startsWith(IMAGE_BASE)?[target.replace(IMAGE_BASE,RAW_IMAGE_BASE),fallback]:[fallback];
+   const tryAlternative=index=>{
+    const alternative=alternatives[index];
+    if(!alternative){img.dataset.failedSrc=requested;img.dataset.pendingSrc='';img.dataset.loadedSrc='';node.classList.add('image-missing');return}
+    img.dataset.pendingSrc=alternative;img.dataset.loadedSrc='';
+    img.alt=alternative===fallback?fallbackAlt:alt;
+    queuePortraitLoad(img,node,alternative,priority+1,()=>{
+     img.dataset.loadedSrc=alternative;img.dataset.pendingSrc='';node.classList.remove('image-missing');
+    },()=>tryAlternative(index+1));
+   };
+   tryAlternative(0);
    return;
   }
-  img.dataset.pendingSrc='';
-  img.dataset.loadedSrc='';
-  node.classList.add('image-missing');
+  img.dataset.pendingSrc='';img.dataset.loadedSrc='';node.classList.add('image-missing');
  };
  queuePortraitLoad(img,node,target,priority,success,failure);
 }
@@ -469,7 +487,7 @@ function updatePhotoField(now){
  const reveal=THREE.MathUtils.smoothstep(6.9-camera.position.z,0,1);
  photoField.style.opacity=String(reveal);
  photoField.style.pointerEvents=reveal>.2?'auto':'none';
- if(reveal<.02||now-photoRefreshAt<110)return;
+ if(reveal<.02||now-photoRefreshAt<photoRefreshInterval)return;
  photoRefreshAt=now;
  if(!points||!records.length)return;
  root.updateMatrixWorld(true);
@@ -487,7 +505,7 @@ function updatePhotoField(now){
   candidates.push({i,x,y,depth:view.z});
  }
  candidates.sort((a,b)=>b.depth-a.depth);
- const chosen=candidates.slice(0,56), keep=new Set(chosen.map(x=>x.i));
+ const chosen=candidates.slice(0,visiblePhotoLimit), keep=new Set(chosen.map(x=>x.i));
  const priorityIds=new Set([...chosen].sort((a,b)=>Math.hypot(a.x-innerWidth/2,a.y-innerHeight/2)-Math.hypot(b.x-innerWidth/2,b.y-innerHeight/2)).slice(0,8).map(x=>x.i));
  if(photoFocusActive&&chosen.length){
   const centerX=innerWidth/2,centerY=innerHeight/2;
@@ -498,7 +516,7 @@ function updatePhotoField(now){
   const focusLimit=Math.min(140,Math.max(82,innerWidth*.24));
   if(candidate&&candidate.centerDistance<=focusLimit&&candidate.i!==centerPhotoIndex){centerPhotoIndex=candidate.i;renderName(centerPhotoIndex)}
  }
- for(const [id,node] of photoNodes){if(!keep.has(id)){node.style.visibility='hidden';node.style.opacity='0'}}
+ for(const [id,node] of photoNodes){if(!keep.has(id)){node.style.visibility='hidden';node.style.opacity='0';cancelPortraitLoad(node.querySelector('img'))}}
  for(const item of chosen){
   let node=photoNodes.get(item.i);
   if(!node){
@@ -535,5 +553,11 @@ function updatePhotoField(now){
  }
  pumpPortraitLoads();
 }
-function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime();rotationX+=(targetX-rotationX)*.055;rotationY+=(targetY-rotationY)*.055;root.rotation.x=rotationX+Math.sin(t*.12)*.018;root.rotation.y=rotationY+t*.025;stars.rotation.y=-t*.003;stars.rotation.x=Math.sin(t*.07)*.018;if(entryZoomActive){const progress=Math.min(1,(performance.now()-entryZoomStartedAt)/2600),eased=progress*progress*(3-2*progress);camera.position.z=entryZoomFrom+(4.35-entryZoomFrom)*eased;if(progress>=1){camera.position.z=4.35;targetZoom=4.35;entryZoomActive=false}}else camera.position.z+=(targetZoom-camera.position.z)*.12;if(zoomLabel)zoomLabel.textContent=Math.round((14-camera.position.z)/(14-4.35)*100)+'%';if(points){points.material.uniforms.uTime.value=t;const glow=root.getObjectByName('glow');if(glow)glow.material.opacity=.09+Math.sin(t*1.35)*.035;if(selectedMarker&&selectedMarker.visible){const pulse=1+Math.sin(t*4.8)*.12;selectedMarker.scale.setScalar(pulse);selectedMarker.children[1].rotation.z=t*.65;selectedMarker.children[2].material.opacity=.09+Math.sin(t*4.8)*.045}}updatePhotoField(performance.now());renderer.render(scene,camera)}
+function animate(now=performance.now()){
+ if(document.hidden)return;
+ requestAnimationFrame(animate);
+ if(now-lastFrameAt<frameInterval)return;
+ lastFrameAt=now;
+ const t=clock.getElapsedTime();rotationX+=(targetX-rotationX)*.055;rotationY+=(targetY-rotationY)*.055;root.rotation.x=rotationX+Math.sin(t*.12)*.018;root.rotation.y=rotationY+t*.025;stars.rotation.y=-t*.003;stars.rotation.x=Math.sin(t*.07)*.018;if(entryZoomActive){const progress=Math.min(1,(performance.now()-entryZoomStartedAt)/2600),eased=progress*progress*(3-2*progress);camera.position.z=entryZoomFrom+(4.35-entryZoomFrom)*eased;if(progress>=1){camera.position.z=4.35;targetZoom=4.35;entryZoomActive=false}}else camera.position.z+=(targetZoom-camera.position.z)*.12;if(zoomLabel)zoomLabel.textContent=Math.round((14-camera.position.z)/(14-4.35)*100)+'%';if(points){points.material.uniforms.uTime.value=t;const glow=root.getObjectByName('glow');if(glow)glow.material.opacity=.09+Math.sin(t*1.35)*.035;if(selectedMarker&&selectedMarker.visible){const pulse=1+Math.sin(t*4.8)*.12;selectedMarker.scale.setScalar(pulse);selectedMarker.children[1].rotation.z=t*.65;selectedMarker.children[2].material.opacity=.09+Math.sin(t*4.8)*.045}}updatePhotoField(performance.now());renderer.render(scene,camera)}
 animate();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){lastFrameAt=0;requestAnimationFrame(animate)}});
