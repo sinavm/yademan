@@ -73,7 +73,9 @@ function queuePortraitLoad(img,node,target,priority,onSuccess,onFailure){
    activePortraitLoads=Math.max(0,activePortraitLoads-1);
   }
  }
- portraitLoadQueue.push({img,node,target,priority,order:performance.now(),onSuccess,onFailure,started:false,done:false,cancelled:false});
+ const job={img,node,target,priority,order:performance.now(),onSuccess,onFailure,started:false,done:false,cancelled:false};
+ img.__portraitLoadJob=job;
+ portraitLoadQueue.push(job);
  pumpPortraitLoads();
 }
 const IMAGE_BASE='https://cdn.jsdelivr.net/gh/ana-pic/JavidNaman@3c2505a3ab614064d6dc8a362166050f98427a7f/yademan-images-webp95/';
