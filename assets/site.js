@@ -164,7 +164,7 @@ async function loadImageManifest(){
    const name=normalizeName(row.n||'');
    const path=(row.p||'').trim();
    const sourceUrl=(row.u||'').trim();
-   if(!name||(!validArchivePath(path)&&!/^https?:\\/\\//i.test(sourceUrl)))continue;
+   if(!name||(!validArchivePath(path)&&!sourceUrl.startsWith('https://')&&!sourceUrl.startsWith('http://')))continue;
    const matches=next.get(name)||[];
    matches.push({path,sourceUrl});
    next.set(name,matches);
