@@ -449,6 +449,7 @@ function updatePhotoField(now){
  }
  candidates.sort((a,b)=>b.depth-a.depth);
  const chosen=candidates.slice(0,56), keep=new Set(chosen.map(x=>x.i));
+ const priorityIds=new Set([...chosen].sort((a,b)=>Math.hypot(a.x-innerWidth/2,a.y-innerHeight/2)-Math.hypot(b.x-innerWidth/2,b.y-innerHeight/2)).slice(0,8).map(x=>x.i));
  if(photoFocusActive&&chosen.length){
   const centerX=innerWidth/2,centerY=innerHeight/2;
   const ranked=chosen.map(item=>({...item,centerDistance:Math.hypot(item.x-centerX,item.y-centerY)})).sort((a,b)=>a.centerDistance-b.centerDistance);
@@ -469,7 +470,10 @@ function updatePhotoField(now){
    photoField.append(node);photoNodes.set(item.i,node);
   }
   const scale=THREE.MathUtils.clamp(1.35-Math.abs(item.depth)/18,.78,1.15);
-  loadPhotoWithoutFlash(node.querySelector('img'),node,getPersonImage(records[item.i]),records[item.i].full_name);
+  const image=node.querySelector('img');
+  if(priorityIds.has(item.i)){image.loading='eager';image.fetchPriority='high'}
+  else{image.loading='lazy';image.fetchPriority='low'}
+  loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i]),records[item.i].full_name);
   node.style.visibility='visible';node.style.opacity='1';
   node.style.transform=`translate3d(${item.x}px,${item.y}px,0) translate(-50%,-50%) scale(${scale})`;
   node.classList.toggle('is-selected',item.i===selected);
