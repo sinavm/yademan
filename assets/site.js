@@ -150,9 +150,9 @@ function getPersonImage(person){
  // Repeated names in either source are resolved only by the original source URL.
  const uniqueRecord=recordNameCounts.get(name)===1;
  const match=matches.length===1&&uniqueRecord?matches[0]:matches.find(item=>item.sourceUrl&&item.sourceUrl===person.image);
- if(!match)return '';
+ if(!match)return person.image||'';
  if(validArchivePath(match.path))return archiveImageUrl(match.path);
- return match.sourceUrl||'';
+ return match.sourceUrl||person.image||'';
 }
 async function loadImageManifest(){
  try{
