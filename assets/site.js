@@ -10,7 +10,7 @@ const personImage=document.querySelector('#person-image');
 const photoField=document.querySelector('#photo-field');
 const photoNodes=new Map();
 const IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/main/yademan-images-webp95/';
-const IMAGE_MANIFEST=IMAGE_BASE+'manifest.csv';
+const IMAGE_MANIFEST='./data/image_manifest.min.json';
 const DEFAULT_PERSON_IMAGE='./assets/yademan-mark.svg';
 let personImages=new Map(), recordNameCounts=new Map();
 let photoRefreshAt=0, hovered=-1, selectedMarker=null;
@@ -150,46 +150,47 @@ function getPersonImage(person){
  // Repeated names in either source are resolved only by the original source URL.
  const uniqueRecord=recordNameCounts.get(name)===1;
  const match=matches.length===1&&uniqueRecord?matches[0]:matches.find(item=>item.sourceUrl&&item.sourceUrl===person.image);
- return match?archiveImageUrl(match.path):'';
+ if(!match)return '';
+ if(validArchivePath(match.path))return archiveImageUrl(match.path);
+ return match.sourceUrl||'';
 }
 async function loadImageManifest(){
  try{
-  const response=await fetch(IMAGE_MANIFEST,{mode:'cors',credentials:'omit'});
+  const response=await fetch(IMAGE_MANIFEST,{mode:'same-origin',credentials:'same-origin'});
   if(!response.ok)throw new Error('image manifest '+response.status);
-  const rows=parseCSV((await response.text()).replace(/^\uFEFF/,''));
+  const rows=await response.json();
   const next=new Map();
   for(const row of rows){
-   const name=normalizeName(row.record_name||'');
-   const path=(row.local_path||'').trim();
-   const status=(row.status||'').trim().toUpperCase();
-   if(!name||status.startsWith('FAILED')||!validArchivePath(path))continue;
+   const name=normalizeName(row.n||'');
+   const path=(row.p||'').trim();
+   const sourceUrl=(row.u||'').trim();
+   if(!name||(!validArchivePath(path)&&!/^https?:\\/\\//i.test(sourceUrl)))continue;
    const matches=next.get(name)||[];
-   matches.push({path,sourceUrl:(row.source_url||'').trim()});
+   matches.push({path,sourceUrl});
    next.set(name,matches);
   }
   personImages=next;
   console.info('Yademan image archive loaded',personImages.size,'unique names');
+  if(selected>=0&&nameCard.classList.contains('visible'))renderName(selected);
  }catch(error){
   personImages=new Map();
-  console.error('Yademan image archive could not be loaded; default portraits will be used',error);
+  console.error('Yademan image manifest could not be loaded; default portraits will be used',error);
  }
 }
 async function loadRecords(){
+ const manifestTask=loadImageManifest();
  try{
-  const [manifestResult,recordsResult]=await Promise.allSettled([
-   loadImageManifest(),
-   fetch('./data/javidnams_data.json').then(response=>{if(!response.ok)throw Error('records');return response.json()})
-  ]);
-  if(recordsResult.status!=='fulfilled')throw recordsResult.reason;
-  const source=recordsResult.value;
+  const response=await fetch('./data/javidnams_data.json');
+  if(!response.ok)throw Error('records '+response.status);
+  const source=await response.json();
   records=source.map((person,index)=>({...person,full_name:person.name||'نام ثبت نشده',row:index+1}));
   recordNameCounts=new Map();
   for(const person of records){
    const name=normalizeName(person.full_name);
    recordNameCounts.set(name,(recordNameCounts.get(name)||0)+1);
   }
-  if(manifestResult.status!=='fulfilled')console.error('Yademan image manifest failed',manifestResult.reason);
   buildPeople();
+  manifestTask.catch(error=>console.error('Yademan image manifest failed',error));
  }catch(e){console.error('Yademan records could not be loaded',e)}
  finally{document.querySelector('#load-state')?.classList.add('is-hidden');requestAnimationFrame(()=>startEntryZoom())}
 }
