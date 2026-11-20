@@ -68,3 +68,12 @@
  #zoom-value{display:none}
  #music-controls{width:132px}
 }
+
+/* Always-readable identity labels on each globe portrait. */
+.photo-node{height:clamp(70px,7.4vw,96px);overflow:hidden;padding:2px;border-radius:6px;background:#080c16;border-color:#d9bd7b88}
+.photo-node img{height:100%;object-fit:cover}
+.photo-caption{position:absolute;left:2px;right:2px;bottom:2px;display:flex;flex-direction:column;gap:0;padding:14px 3px 3px;background:linear-gradient(180deg,transparent 0%,#050812e8 48%,#050812f5 100%);color:#f4e8ce;text-align:center;pointer-events:none}
+.photo-caption-name{overflow:hidden;font:500 9px/1.35 Vazirmatn,Tahoma,sans-serif;text-overflow:ellipsis;white-space:nowrap}
+.photo-caption-place{overflow:hidden;color:#d0b98c;font:400 8px/1.35 Vazirmatn,Tahoma,sans-serif;text-overflow:ellipsis;white-space:nowrap}
+.photo-node:hover .photo-caption,.photo-node.is-selected .photo-caption{background:linear-gradient(180deg,transparent 0%,#050812f0 42%,#050812 100%)}
+@media(max-width:600px){.photo-node{width:52px;height:72px}.photo-caption-name{font-size:8px}.photo-caption-place{font-size:7px}}
