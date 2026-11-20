@@ -263,8 +263,8 @@ async function loadImageManifest(){
  }
 }
 async function loadRecords(){
- // Download records and the image index in parallel; do not start portrait requests before the index settles.
- const manifestTask=loadImageManifest();
+ // Start the local image index alongside the records request; portrait requests remain gated until it settles.
+ loadImageManifest();
  try{
   const response=await fetch('./data/javidnams_data.json');
   if(!response.ok)throw Error('records '+response.status);
@@ -276,7 +276,6 @@ async function loadRecords(){
    recordNameCounts.set(name,(recordNameCounts.get(name)||0)+1);
   }
   buildPeople();
-  await manifestTask;
  }catch(e){console.error('Yademan records could not be loaded',e)}
  finally{document.querySelector('#load-state')?.classList.add('is-hidden');requestAnimationFrame(()=>startEntryZoom())}
 }
