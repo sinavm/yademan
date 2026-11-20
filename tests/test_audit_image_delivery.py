@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from scripts.audit_image_delivery import audit, normalize_name, valid_archive_path
 
@@ -43,6 +44,18 @@ class ImageDeliveryAuditTests(unittest.TestCase):
             [{"n": "نام", "p": "images/6a/7cb40da7f_flag.png", "u": "https://a.example/p.jpg"}],
         )
         self.assertEqual(result["shared_flag_manifest_rows"], 1)
+
+
+    def test_globe_portrait_selection_is_not_artificially_limited_to_old_counts(self):
+        source = (Path(__file__).resolve().parents[1] / "assets" / "site.js").read_text(encoding="utf-8")
+        self.assertIn("visiblePhotoLimit=isLowEndDevice?48:(isMobileDevice?76:120)", source)
+        self.assertIn("portraitNodeLimit=isLowEndDevice?72:(isMobileDevice?112:168)", source)
+
+    def test_globe_portraits_prioritize_current_view_and_exclude_far_hemisphere(self):
+        source = (Path(__file__).resolve().parents[1] / "assets" / "site.js").read_text(encoding="utf-8")
+        self.assertIn("if(v.dot(camera.position)<=0)continue;", source)
+        self.assertIn("candidates.sort((a,b)=>a.centerDistance-b.centerDistance||b.depth-a.depth)", source)
+        self.assertIn("Math.min(16,Math.max(8,Math.ceil(visiblePhotoLimit*.2)))", source)
 
 
 if __name__ == "__main__":
