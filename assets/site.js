@@ -230,6 +230,9 @@ function getPersonImage(person,variant='original'){
  const uniqueRecord=recordNameCounts.get(name)===1;
  const match=matches.length===1&&uniqueRecord?matches[0]:matches.find(item=>item.sourceUrl&&item.sourceUrl===person.image);
  if(!match)return person.image||'';
+ // A shared flag asset is a source placeholder, not an individual portrait.
+ // Never present it as the face/photo of every record that references it.
+ if(typeof match.path==='string'&&/(?:^|\/)7cb40da7f_flag\.(?:webp|png)$/i.test(match.path))return DEFAULT_PERSON_IMAGE;
  if(validArchivePath(match.path)){
   const original=archiveImageUrl(match.path);
   if(variant==='thumbnail'||variant==='medium'){
