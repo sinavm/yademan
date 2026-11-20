@@ -20,7 +20,7 @@ MANIFEST_PATH = ROOT / "data" / "image_manifest.min.json"
 
 def normalize_name(value: Any) -> str:
     text = str(value or "").lower()
-    return (
+    normalized = (
         text.replace("ي", "ی")
         .replace("ى", "ی")
         .replace("ك", "ک")
@@ -30,8 +30,7 @@ def normalize_name(value: Any) -> str:
         .replace("\u200e", " ")
         .replace("ـ", "")
     )
-    text = re.sub(r"\\s+", " ", text).strip()
-    return text
+    return re.sub(r"\s+", " ", normalized).strip()
 
 
 def valid_archive_path(value: Any) -> bool:
