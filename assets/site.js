@@ -14,10 +14,11 @@ const connectionInfo=navigator.connection||navigator.mozConnection||navigator.we
 const isLowEndDevice=isMobileDevice&&((typeof navigator.deviceMemory==='number'&&navigator.deviceMemory<=4)||(typeof navigator.hardwareConcurrency==='number'&&navigator.hardwareConcurrency<=4)||!!connectionInfo?.saveData||/2g|3g/.test(connectionInfo?.effectiveType||''));
 const pixelRatioCap=isLowEndDevice?1.15:(isMobileDevice?1.4:1.75);
 const frameInterval=isLowEndDevice?1000/30:(isMobileDevice?1000/40:1000/60);
-const photoRefreshInterval=isLowEndDevice?230:(isMobileDevice?165:110);
-const visiblePhotoLimit=isLowEndDevice?30:(isMobileDevice?40:56);
-const portraitNodeLimit=isLowEndDevice?40:(isMobileDevice?52:72);
-const portraitLoadLimit=isLowEndDevice?3:(isMobileDevice?4:5);
+// Keep enough portraits available while rotating, without allowing unbounded DOM growth.
+const photoRefreshInterval=isLowEndDevice?190:(isMobileDevice?125:85);
+const visiblePhotoLimit=isLowEndDevice?48:(isMobileDevice?76:120);
+const portraitNodeLimit=isLowEndDevice?72:(isMobileDevice?112:168);
+const portraitLoadLimit=isLowEndDevice?4:(isMobileDevice?6:8);
 const portraitLoadQueue=[];
 let activePortraitLoads=0;
 let lastFrameAt=0;
@@ -544,16 +545,21 @@ function updatePhotoField(now){
  for(let i=0;i<records.length;i++){
   const person=records[i];
   v.fromBufferAttribute(attr,i).applyMatrix4(root.matrixWorld);
+  // HTML portrait cards do not participate in WebGL depth testing. Exclude
+  // the far hemisphere explicitly so rear-side portraits cannot overlay the globe.
+  if(v.dot(camera.position)<=0)continue;
   view.copy(v).applyMatrix4(camera.matrixWorldInverse);
   if(view.z>-.05)continue;
   projected.copy(v).project(camera);
   const x=(projected.x*.5+.5)*innerWidth,y=(-projected.y*.5+.5)*innerHeight;
   if(x< -60||x>innerWidth+60||y< -60||y>innerHeight+60)continue;
-  candidates.push({i,x,y,depth:view.z});
+  candidates.push({i,x,y,depth:view.z,centerDistance:Math.hypot(x-innerWidth/2,y-innerHeight/2)});
  }
- candidates.sort((a,b)=>b.depth-a.depth);
+ // Prefer portraits near the visible focal area, then the nearer surface.
+ // This makes the set refresh naturally as a different part of the globe rotates in.
+ candidates.sort((a,b)=>a.centerDistance-b.centerDistance||b.depth-a.depth);
  const chosen=candidates.slice(0,visiblePhotoLimit), keep=new Set(chosen.map(x=>x.i));
- const priorityIds=new Set([...chosen].sort((a,b)=>Math.hypot(a.x-innerWidth/2,a.y-innerHeight/2)-Math.hypot(b.x-innerWidth/2,b.y-innerHeight/2)).slice(0,8).map(x=>x.i));
+ const priorityIds=new Set(chosen.slice(0,Math.min(16,Math.max(8,Math.ceil(visiblePhotoLimit*.2)))).map(x=>x.i));
  if(photoFocusActive&&chosen.length){
   const centerX=innerWidth/2,centerY=innerHeight/2;
   const ranked=chosen.map(item=>({...item,centerDistance:Math.hypot(item.x-centerX,item.y-centerY)})).sort((a,b)=>a.centerDistance-b.centerDistance);
