@@ -58,9 +58,6 @@ class ImageDeliveryAuditTests(unittest.TestCase):
         self.assertIn("Math.min(16,Math.max(8,Math.ceil(visiblePhotoLimit*.2)))", source)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
     def test_portrait_requests_survive_temporary_rotation_hiding(self):
         source = (Path(__file__).resolve().parents[1] / "assets" / "site.js").read_text(encoding="utf-8")
         self.assertNotIn("cancelPortraitLoad(node.querySelector('img'))", source)
@@ -73,3 +70,6 @@ if __name__ == "__main__":
         self.assertIn("photo-caption-place", source)
         self.assertIn("captionPlace.textContent=records[item.i].place||'محل ثبت نشده'", source)
         self.assertIn("image.loading='eager'", source)
+
+if __name__ == "__main__":
+    unittest.main()
