@@ -64,12 +64,13 @@ class ImageDeliveryAuditTests(unittest.TestCase):
         self.assertIn("if(!job.img.isConnected){", source)
         self.assertNotIn("job.node&&job.node.style.visibility==='hidden'", source)
 
-    def test_globe_portraits_render_name_and_city_captions(self):
+    def test_clicking_a_portrait_opens_existing_person_detail_card(self):
         source = (Path(__file__).resolve().parents[1] / "assets" / "site.js").read_text(encoding="utf-8")
-        self.assertIn("photo-caption-name", source)
-        self.assertIn("photo-caption-place", source)
-        self.assertIn("captionPlace.textContent=records[item.i].place||'محل ثبت نشده'", source)
-        self.assertIn("image.loading='eager'", source)
+        self.assertIn("node.addEventListener('click',e=>{e.stopPropagation();showName(item.i,true)})", source)
+        self.assertIn("personName.textContent=person.full_name", source)
+        self.assertIn("personPlace.textContent=person.place||'محل ثبت نشده'", source)
+        self.assertIn("loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person,'medium')", source)
+        self.assertNotIn("photo-caption", source)
 
 if __name__ == "__main__":
     unittest.main()
