@@ -247,8 +247,7 @@ async function loadImageManifest(){
   }
   personImages=next;
   console.info('Yademan image archive loaded',personImages.size,'unique names');
-  // The manifest can also finish after the bounded startup wait. Refresh only
-  // currently mounted portraits so late archive resolution replaces source URLs.
+  // Refresh mounted portraits if the manifest is reloaded while the scene is active.
   for(const [index,node] of photoNodes){
    const image=node.querySelector('img');
    if(image)loadPhotoWithoutFlash(image,node,getPersonImage(records[index]),records[index]?.full_name||'',node.dataset.imagePriority==='high'?50:0);
