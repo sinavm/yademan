@@ -92,6 +92,7 @@ const RAW_IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/ced98
 const IMAGE_MANIFEST='./data/image_manifest.min.json';
 const DEFAULT_PERSON_IMAGE='./assets/yademan-mark.svg';
 let personImages=new Map(), recordNameCounts=new Map();
+let imageManifestReady=false;
 let photoRefreshAt=0, hovered=-1, selectedMarker=null;
 const searchLayer=document.querySelector('#search-layer');
 const searchInput=document.querySelector('#search');
@@ -226,18 +227,22 @@ function archiveImageUrl(path){
 function getPersonImage(person,variant='original'){
  const name=normalizeName(person.full_name||person.name||'');
  const matches=personImages.get(name)||[];
- // Repeated names in either source are resolved only by the original source URL.
+ // Repeated names are resolved only by the original source URL.
  const uniqueRecord=recordNameCounts.get(name)===1;
  const match=matches.length===1&&uniqueRecord?matches[0]:matches.find(item=>item.sourceUrl&&item.sourceUrl===person.image);
  if(!match)return person.image||'';
- // A shared flag asset is a source placeholder, not an individual portrait.
- // Never present it as the face/photo of every record that references it.
- if(typeof match.path==='string'&&/(?:^|\/)7cb40da7f_flag\.(?:webp|png)$/i.test(match.path))return DEFAULT_PERSON_IMAGE;
+ // A shared flag asset is not an individual portrait.
+ if(typeof match.path==='string'&&/(?:^|\\/)7cb40da7f_flag\\.(?:webp|png)$/i.test(match.path))return DEFAULT_PERSON_IMAGE;
+ const wantsThumb=variant==='thumbnail'||variant==='thumb';
+ const wantsDetail=variant==='medium'||variant==='detail';
+ const explicitPath=wantsThumb?match.thumbPath:wantsDetail?match.detailPath:'';
+ // Prefer an explicitly curated variant path when present in the manifest.
+ if(validArchivePath(explicitPath))return archiveImageUrl(explicitPath);
  if(validArchivePath(match.path)){
   const original=archiveImageUrl(match.path);
-  if(variant==='thumbnail'||variant==='medium'){
+  if(wantsThumb||wantsDetail){
    const relative=original.slice(IMAGE_BASE.length);
-   const base=variant==='thumbnail'?THUMB_IMAGE_BASE:MEDIUM_IMAGE_BASE;
+   const base=wantsThumb?THUMB_IMAGE_BASE:MEDIUM_IMAGE_BASE;
    return base+relative;
   }
   return original;
@@ -245,44 +250,46 @@ function getPersonImage(person,variant='original'){
  return match.sourceUrl||person.image||'';
 }
 async function loadImageManifest(){
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),8000);
  try{
-  const response=await fetch(IMAGE_MANIFEST,{mode:'same-origin',credentials:'same-origin'});
+  const response=await fetch(IMAGE_MANIFEST,{mode:'same-origin',credentials:'same-origin',signal:controller.signal});
   if(!response.ok)throw new Error('image manifest '+response.status);
   const rows=await response.json();
   const next=new Map();
   for(const row of rows){
    const name=normalizeName(row.n||'');
    const path=(row.p||'').trim();
+   const thumbPath=(row.t||'').trim();
+   const detailPath=(row.d||'').trim();
    const sourceUrl=(row.u||'').trim();
-   if(!name||(!validArchivePath(path)&&!sourceUrl.startsWith('https://')&&!sourceUrl.startsWith('http://')))continue;
+   if(!name||(!validArchivePath(path)&&!validArchivePath(thumbPath)&&!validArchivePath(detailPath)&&!sourceUrl.startsWith('https://')&&!sourceUrl.startsWith('http://')))continue;
    const matches=next.get(name)||[];
-   matches.push({path,sourceUrl});
+   matches.push({path,thumbPath,detailPath,sourceUrl});
    next.set(name,matches);
   }
   personImages=next;
   console.info('Yademan image archive loaded',personImages.size,'unique names');
-  // Refresh mounted portraits if the manifest is reloaded while the scene is active.
+ }catch(error){
+  personImages=new Map();
+  console.error('Yademan image manifest could not be loaded; original image URLs will be used as fallback',error);
+ }finally{
+  clearTimeout(timeout);
+  imageManifestReady=true;
+  // Refresh any UI that was waiting for the manifest.
   for(const [index,node] of photoNodes){
    const image=node.querySelector('img');
    if(image)loadPhotoWithoutFlash(image,node,getPersonImage(records[index],'thumbnail'),records[index]?.full_name||'',node.dataset.imagePriority==='high'?50:0);
   }
   if(selected>=0&&nameCard.classList.contains('visible'))renderName(selected);
-  return true;
- }catch(error){
-  personImages=new Map();
-  console.error('Yademan image manifest could not be loaded; original image URLs will be used',error);
-  return false;
  }
 }
 async function loadRecords(){
+ // Start both requests together: the globe can initialize as soon as records arrive,
+ // while portrait network requests wait for the manifest (or its 8-second timeout).
+ loadImageManifest();
  try{
-  // Resolve the image manifest before constructing the photo field. Previously
-  // records were rendered immediately while the manifest was still in flight,
-  // so early portrait requests bypassed the optimized archive URLs.
-  const [response] = await Promise.all([
-   fetch('./data/javidnams_data.json'),
-   loadImageManifest()
-  ]);
+  const response=await fetch('./data/javidnams_data.json');
   if(!response.ok)throw Error('records '+response.status);
   const source=await response.json();
   records=source.map((person,index)=>({...person,full_name:person.name||'نام ثبت نشده',row:index+1}));
@@ -292,7 +299,7 @@ async function loadRecords(){
    recordNameCounts.set(name,(recordNameCounts.get(name)||0)+1);
   }
   buildPeople();
- }catch(e){console.error('Yademan startup data could not be loaded',e)}
+ }catch(e){console.error('Yademan records could not be loaded',e)}
  finally{document.querySelector('#load-state')?.classList.add('is-hidden');requestAnimationFrame(()=>startEntryZoom())}
 }
 loadRecords();
@@ -310,7 +317,7 @@ function renderName(index){
  if(index<0||index>=records.length)return;
  const person=records[index];selected=index;
  if(selectedMarker&&points){selectedMarker.position.fromArray(points.geometry.attributes.position.array,index*3);selectedMarker.visible=true}
- personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;personImage.loading='eager';personImage.fetchPriority='high';loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person,'medium'),person.full_name,100);nameCard.classList.add('visible');
+ personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;personImage.loading='eager';personImage.fetchPriority='high';if(imageManifestReady)loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person,'medium'),person.full_name,100);else{cancelPortraitLoad(personImage);personImage.hidden=true}nameCard.classList.add('visible');
 }
 function showName(index,fromPhoto=false){
  if(index<0||index>=records.length)return;
@@ -527,7 +534,7 @@ function updatePhotoField(now){
  const reveal=THREE.MathUtils.smoothstep(6.9-camera.position.z,0,1);
  photoField.style.opacity=String(reveal);
  photoField.style.pointerEvents=reveal>.2?'auto':'none';
- if(reveal<.02||now-photoRefreshAt<photoRefreshInterval)return;
+ if(!imageManifestReady||reveal<.02||now-photoRefreshAt<photoRefreshInterval)return;
  photoRefreshAt=now;
  if(!points||!records.length)return;
  root.updateMatrixWorld(true);
