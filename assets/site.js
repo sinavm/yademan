@@ -222,14 +222,16 @@ function archiveImageUrl(path){
  const webpPath=/\.webp$/i.test(path)?path:path.replace(/\.(?:jpe?g|png|gif|bmp|tiff?)$/i,'')+'.webp';
  return IMAGE_BASE+webpPath.split('/').map(part=>encodeURIComponent(part)).join('/');
 }
-function getPersonImage(person){
+function getPersonImage(person,variant='original'){
  const name=normalizeName(person.full_name||person.name||'');
  const matches=personImages.get(name)||[];
  // Repeated names in either source are resolved only by the original source URL.
  const uniqueRecord=recordNameCounts.get(name)===1;
  const match=matches.length===1&&uniqueRecord?matches[0]:matches.find(item=>item.sourceUrl&&item.sourceUrl===person.image);
  if(!match)return person.image||'';
- if(validArchivePath(match.path))return archiveImageUrl(match.path);
+ const variantPath=variant==='thumb'?match.thumbPath:variant==='detail'?match.detailPath:'';
+ const selectedPath=validArchivePath(variantPath)?variantPath:match.path;
+ if(validArchivePath(selectedPath))return archiveImageUrl(selectedPath);
  return match.sourceUrl||person.image||'';
 }
 async function loadImageManifest(){
@@ -242,9 +244,11 @@ async function loadImageManifest(){
    const name=normalizeName(row.n||'');
    const path=(row.p||'').trim();
    const sourceUrl=(row.u||'').trim();
+   const thumbPath=(row.t||'').trim();
+   const detailPath=(row.d||'').trim();
    if(!name||(!validArchivePath(path)&&!sourceUrl.startsWith('https://')&&!sourceUrl.startsWith('http://')))continue;
    const matches=next.get(name)||[];
-   matches.push({path,sourceUrl});
+   matches.push({path,thumbPath,detailPath,sourceUrl});
    next.set(name,matches);
   }
   personImages=next;
@@ -292,7 +296,7 @@ function renderName(index){
  const person=records[index];selected=index;
  if(selectedMarker&&points){selectedMarker.position.fromArray(points.geometry.attributes.position.array,index*3);selectedMarker.visible=true}
  personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;personImage.loading='eager';personImage.fetchPriority='high';
- if(imageManifestReady)loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person),person.full_name,100);
+ if(imageManifestReady)loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person,'detail'),person.full_name,100);
  else{cancelPortraitLoad(personImage);personImage.hidden=true}
  nameCard.classList.add('visible');
 }
@@ -553,7 +557,7 @@ function updatePhotoField(now){
   if(priorityIds.has(item.i)){image.loading='eager';image.fetchPriority='high'}
   else{image.loading='lazy';image.fetchPriority='low'}
   node.style.visibility='visible';node.style.opacity='1';
-  loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i]),records[item.i].full_name,priorityIds.has(item.i)?50:0);
+  loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i],'thumb'),records[item.i].full_name,priorityIds.has(item.i)?50:0);
   node.style.transform=`translate3d(${item.x}px,${item.y}px,0) translate(-50%,-50%) scale(${scale})`;
   node.classList.toggle('is-selected',item.i===selected);
   photoNodes.delete(item.i);photoNodes.set(item.i,node);
