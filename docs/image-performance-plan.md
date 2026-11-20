@@ -8,7 +8,7 @@ Implemented in the frontend:
 - Portrait rendering is gated until the manifest has either loaded or failed.
 - The globe and point cloud can initialize while the manifest is being fetched.
 - A selected detail card is refreshed when the manifest settles.
-- A manifest failure still allows the existing source-URL fallback; it does not leave the UI permanently blocked.
+- A manifest failure or an 8-second timeout still allows the existing source-URL fallback; a stalled index cannot block portrait rendering forever.
 - The renderer can use optional `t` (thumbnail) and `d` (detail) paths in manifest rows. Existing `p` rows remain compatible.
 - Globe photo nodes request the thumbnail variant; the selected person card requests the detail variant.
 
