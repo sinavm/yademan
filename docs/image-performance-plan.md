@@ -14,6 +14,14 @@ The records JSON and image manifest are requested concurrently. The globe and po
 
 Manifest rows remain backward-compatible with the existing `n`, `p`, and `u` fields. Optional `t` and `d` paths may specify explicit thumbnail and detail assets. Explicit paths take precedence; otherwise the client derives the thumbnail/medium URL from the existing archive-relative path.
 
+## Globe rotation and portrait scheduling
+
+Portrait overlays are DOM elements, so they do not share the WebGL globe's depth buffer. The renderer now filters points to the camera-facing hemisphere before creating overlays; this prevents portraits on the rear of the sphere from appearing over the visible surface. Visible portraits are ranked by distance to the viewport center, with surface depth as a tie-breaker, so the set follows the area currently in view as the globe rotates.
+
+The previous hard limits (30 low-end / 40 mobile / 56 desktop) could make the globe look as though it stopped revealing people even when more records were in view. The updated limits are 48 / 76 / 120 visible portraits, with DOM retention caps of 72 / 112 / 168 and a modestly larger bounded network queue. The refresh cadence is also shorter, while remaining device-aware. These are upper bounds, not a promise that every record is simultaneously visible; camera framing and screen area still determine the candidate set.
+
+The selected-photo queue continues to prioritize portraits near the viewport center. Automated contract tests guard the new selection policy and limits. Real-device frame pacing and network behavior still require Lighthouse and iOS Safari / Android Chrome validation after deployment.
+
 ## Rights and identity gate
 
 The current `data/approved.json` is empty. An image URL or an archive file is not evidence of identity or reuse permission. Do not bulk-resize, copy, or publish portraits until each item has documented clearance.
