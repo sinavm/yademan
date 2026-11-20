@@ -235,8 +235,10 @@ function getPersonImage(person,variant='original'){
  return match.sourceUrl||person.image||'';
 }
 async function loadImageManifest(){
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),8000);
  try{
-  const response=await fetch(IMAGE_MANIFEST,{mode:'same-origin',credentials:'same-origin'});
+  const response=await fetch(IMAGE_MANIFEST,{mode:'same-origin',credentials:'same-origin',signal:controller.signal});
   if(!response.ok)throw new Error('image manifest '+response.status);
   const rows=await response.json();
   const next=new Map();
@@ -260,6 +262,8 @@ async function loadImageManifest(){
   imageManifestReady=true;
   console.error('Yademan image manifest could not be loaded; original image URLs will be used as fallback',error);
   if(selected>=0&&nameCard.classList.contains('visible'))renderName(selected);
+ }finally{
+  clearTimeout(timeout);
  }
 }
 async function loadRecords(){
