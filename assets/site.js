@@ -84,8 +84,11 @@ function queuePortraitLoad(img,node,target,priority,onSuccess,onFailure){
  portraitLoadQueue.push(job);
  pumpPortraitLoads();
 }
-const IMAGE_BASE='https://cdn.jsdelivr.net/gh/ana-pic/JavidNaman@3c2505a3ab614064d6dc8a362166050f98427a7f/yademan-images-webp95/';
-const RAW_IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/3c2505a3ab614064d6dc8a362166050f98427a7f/yademan-images-webp95/';
+const IMAGE_REPO_BASE='https://cdn.jsdelivr.net/gh/ana-pic/JavidNaman@ced98d2ba7477dba4144f53fd6e7a70e7bff0249/';
+const IMAGE_BASE=IMAGE_REPO_BASE+'yademan-images-webp95/';
+const THUMB_IMAGE_BASE=IMAGE_REPO_BASE+'yademan-thumbnails-webp/';
+const MEDIUM_IMAGE_BASE=IMAGE_REPO_BASE+'yademan-medium-webp/';
+const RAW_IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/ced98d2ba7477dba4144f53fd6e7a70e7bff0249/yademan-images-webp95/';
 const IMAGE_MANIFEST='./data/image_manifest.min.json';
 const DEFAULT_PERSON_IMAGE='./assets/yademan-mark.svg';
 let personImages=new Map(), recordNameCounts=new Map();
@@ -220,14 +223,22 @@ function archiveImageUrl(path){
  const webpPath=/\.webp$/i.test(path)?path:path.replace(/\.(?:jpe?g|png|gif|bmp|tiff?)$/i,'')+'.webp';
  return IMAGE_BASE+webpPath.split('/').map(part=>encodeURIComponent(part)).join('/');
 }
-function getPersonImage(person){
+function getPersonImage(person,variant='original'){
  const name=normalizeName(person.full_name||person.name||'');
  const matches=personImages.get(name)||[];
  // Repeated names in either source are resolved only by the original source URL.
  const uniqueRecord=recordNameCounts.get(name)===1;
  const match=matches.length===1&&uniqueRecord?matches[0]:matches.find(item=>item.sourceUrl&&item.sourceUrl===person.image);
  if(!match)return person.image||'';
- if(validArchivePath(match.path))return archiveImageUrl(match.path);
+ if(validArchivePath(match.path)){
+  const original=archiveImageUrl(match.path);
+  if(variant==='thumbnail'||variant==='medium'){
+   const relative=original.slice(IMAGE_BASE.length);
+   const base=variant==='thumbnail'?THUMB_IMAGE_BASE:MEDIUM_IMAGE_BASE;
+   return base+relative;
+  }
+  return original;
+ }
  return match.sourceUrl||person.image||'';
 }
 async function loadImageManifest(){
@@ -247,16 +258,28 @@ async function loadImageManifest(){
   }
   personImages=next;
   console.info('Yademan image archive loaded',personImages.size,'unique names');
+  // Refresh mounted portraits if the manifest is reloaded while the scene is active.
+  for(const [index,node] of photoNodes){
+   const image=node.querySelector('img');
+   if(image)loadPhotoWithoutFlash(image,node,getPersonImage(records[index],'thumbnail'),records[index]?.full_name||'',node.dataset.imagePriority==='high'?50:0);
+  }
   if(selected>=0&&nameCard.classList.contains('visible'))renderName(selected);
+  return true;
  }catch(error){
   personImages=new Map();
-  console.error('Yademan image manifest could not be loaded; default portraits will be used',error);
+  console.error('Yademan image manifest could not be loaded; original image URLs will be used',error);
+  return false;
  }
 }
 async function loadRecords(){
- const manifestTask=loadImageManifest();
  try{
-  const response=await fetch('./data/javidnams_data.json');
+  // Resolve the image manifest before constructing the photo field. Previously
+  // records were rendered immediately while the manifest was still in flight,
+  // so early portrait requests bypassed the optimized archive URLs.
+  const [response] = await Promise.all([
+   fetch('./data/javidnams_data.json'),
+   loadImageManifest()
+  ]);
   if(!response.ok)throw Error('records '+response.status);
   const source=await response.json();
   records=source.map((person,index)=>({...person,full_name:person.name||'نام ثبت نشده',row:index+1}));
@@ -266,8 +289,7 @@ async function loadRecords(){
    recordNameCounts.set(name,(recordNameCounts.get(name)||0)+1);
   }
   buildPeople();
-  manifestTask.catch(error=>console.error('Yademan image manifest failed',error));
- }catch(e){console.error('Yademan records could not be loaded',e)}
+ }catch(e){console.error('Yademan startup data could not be loaded',e)}
  finally{document.querySelector('#load-state')?.classList.add('is-hidden');requestAnimationFrame(()=>startEntryZoom())}
 }
 loadRecords();
@@ -285,7 +307,7 @@ function renderName(index){
  if(index<0||index>=records.length)return;
  const person=records[index];selected=index;
  if(selectedMarker&&points){selectedMarker.position.fromArray(points.geometry.attributes.position.array,index*3);selectedMarker.visible=true}
- personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;personImage.loading='eager';personImage.fetchPriority='high';loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person),person.full_name,100);nameCard.classList.add('visible');
+ personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;personImage.loading='eager';personImage.fetchPriority='high';loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person,'medium'),person.full_name,100);nameCard.classList.add('visible');
 }
 function showName(index,fromPhoto=false){
  if(index<0||index>=records.length)return;
@@ -477,7 +499,9 @@ function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
  };
  const failure=()=>{
   if(target!==fallback){
-   const alternatives=target.startsWith(IMAGE_BASE)?[target.replace(IMAGE_BASE,RAW_IMAGE_BASE),fallback]:[fallback];
+   const isArchiveImage=target.startsWith(IMAGE_BASE)||target.startsWith(THUMB_IMAGE_BASE)||target.startsWith(MEDIUM_IMAGE_BASE);
+   const originalTarget=target.startsWith(THUMB_IMAGE_BASE)?target.replace(THUMB_IMAGE_BASE,IMAGE_BASE):target.startsWith(MEDIUM_IMAGE_BASE)?target.replace(MEDIUM_IMAGE_BASE,IMAGE_BASE):target;
+   const alternatives=isArchiveImage?[originalTarget,originalTarget.replace(IMAGE_BASE,RAW_IMAGE_BASE),fallback]:[fallback];
    const tryAlternative=index=>{
     const alternative=alternatives[index];
     if(!alternative){img.dataset.failedSrc=requested;img.dataset.resolvedFor='';img.dataset.resolvedSrc='';img.dataset.pendingSrc='';img.dataset.loadedSrc='';node.classList.add('image-missing');return}
@@ -544,7 +568,7 @@ function updatePhotoField(now){
   if(priorityIds.has(item.i)){image.loading='eager';image.fetchPriority='high'}
   else{image.loading='lazy';image.fetchPriority='low'}
   node.style.visibility='visible';node.style.opacity='1';
-  loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i]),records[item.i].full_name,priorityIds.has(item.i)?50:0);
+  loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i],'thumbnail'),records[item.i].full_name,priorityIds.has(item.i)?50:0);
   node.style.transform=`translate3d(${item.x}px,${item.y}px,0) translate(-50%,-50%) scale(${scale})`;
   node.classList.toggle('is-selected',item.i===selected);
   photoNodes.delete(item.i);photoNodes.set(item.i,node);
