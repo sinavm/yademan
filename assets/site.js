@@ -577,7 +577,7 @@ function updatePhotoField(now){
  for(const item of chosen){
   let node=photoNodes.get(item.i);
   if(!node){
-   node=document.createElement('button');node.type='button';node.className='photo-node';node.setAttribute('aria-label',records[item.i].full_name);
+   node=document.createElement('button');node.type='button';node.className='photo-node';node.setAttribute('aria-label',records[item.i].full_name+'، '+(records[item.i].place||'محل ثبت نشده'));node.title=records[item.i].full_name+' — '+(records[item.i].place||'محل ثبت نشده');
    const img=document.createElement('img');img.loading='lazy';img.decoding='async';img.alt='تصویر '+records[item.i].full_name;img.hidden=true;node.append(img);
    const flare=document.createElement('span');flare.className='photo-flare';node.append(flare);
    node.addEventListener('click',e=>{e.stopPropagation();showName(item.i,true)});
