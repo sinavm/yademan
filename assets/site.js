@@ -247,16 +247,29 @@ async function loadImageManifest(){
   }
   personImages=next;
   console.info('Yademan image archive loaded',personImages.size,'unique names');
+  // The manifest can also finish after the bounded startup wait. Refresh only
+  // currently mounted portraits so late archive resolution replaces source URLs.
+  for(const [index,node] of photoNodes){
+   const image=node.querySelector('img');
+   if(image)loadPhotoWithoutFlash(image,node,getPersonImage(records[index]),records[index]?.full_name||'',node.dataset.imagePriority==='high'?50:0);
+  }
   if(selected>=0&&nameCard.classList.contains('visible'))renderName(selected);
+  return true;
  }catch(error){
   personImages=new Map();
-  console.error('Yademan image manifest could not be loaded; default portraits will be used',error);
+  console.error('Yademan image manifest could not be loaded; original image URLs will be used',error);
+  return false;
  }
 }
 async function loadRecords(){
- const manifestTask=loadImageManifest();
  try{
-  const response=await fetch('./data/javidnams_data.json');
+  // Resolve the image manifest before constructing the photo field. Previously
+  // records were rendered immediately while the manifest was still in flight,
+  // so early portrait requests bypassed the optimized archive URLs.
+  const [response] = await Promise.all([
+   fetch('./data/javidnams_data.json'),
+   loadImageManifest()
+  ]);
   if(!response.ok)throw Error('records '+response.status);
   const source=await response.json();
   records=source.map((person,index)=>({...person,full_name:person.name||'نام ثبت نشده',row:index+1}));
@@ -266,8 +279,7 @@ async function loadRecords(){
    recordNameCounts.set(name,(recordNameCounts.get(name)||0)+1);
   }
   buildPeople();
-  manifestTask.catch(error=>console.error('Yademan image manifest failed',error));
- }catch(e){console.error('Yademan records could not be loaded',e)}
+ }catch(e){console.error('Yademan startup data could not be loaded',e)}
  finally{document.querySelector('#load-state')?.classList.add('is-hidden');requestAnimationFrame(()=>startEntryZoom())}
 }
 loadRecords();
