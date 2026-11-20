@@ -30,6 +30,8 @@ def normalize_name(value: Any) -> str:
         .replace("\u200e", " ")
         .replace("ـ", "")
     )
+    text = re.sub(r"\\s+", " ", text).strip()
+    return text
 
 
 def valid_archive_path(value: Any) -> bool:
