@@ -58,5 +58,19 @@ class ImageDeliveryAuditTests(unittest.TestCase):
         self.assertIn("Math.min(16,Math.max(8,Math.ceil(visiblePhotoLimit*.2)))", source)
 
 
+    def test_portrait_requests_survive_temporary_rotation_hiding(self):
+        source = (Path(__file__).resolve().parents[1] / "assets" / "site.js").read_text(encoding="utf-8")
+        self.assertNotIn("cancelPortraitLoad(node.querySelector('img'))", source)
+        self.assertIn("if(!job.img.isConnected){", source)
+        self.assertNotIn("job.node&&job.node.style.visibility==='hidden'", source)
+
+    def test_clicking_a_portrait_opens_existing_person_detail_card(self):
+        source = (Path(__file__).resolve().parents[1] / "assets" / "site.js").read_text(encoding="utf-8")
+        self.assertIn("node.addEventListener('click',e=>{e.stopPropagation();showName(item.i,true)})", source)
+        self.assertIn("personName.textContent=person.full_name", source)
+        self.assertIn("personPlace.textContent=person.place||'محل ثبت نشده'", source)
+        self.assertIn("loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person,'medium')", source)
+        self.assertNotIn("photo-caption", source)
+
 if __name__ == "__main__":
     unittest.main()
