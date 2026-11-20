@@ -40,7 +40,7 @@ function pumpPortraitLoads(){
  while(activePortraitLoads<MAX_PORTRAIT_LOADS&&portraitLoadQueue.length){
   const job=portraitLoadQueue.shift();
   if(job.cancelled||job.img.dataset.pendingSrc!==job.target){if(job.img.__portraitLoadJob===job)job.img.__portraitLoadJob=null;continue}
-  if(!job.img.isConnected||(job.node&&job.node.style.visibility==='hidden')){
+  if(!job.img.isConnected){
    job.img.dataset.pendingSrc='';
    if(job.img.__portraitLoadJob===job)job.img.__portraitLoadJob=null;
    continue;
@@ -72,6 +72,9 @@ function pumpPortraitLoads(){
 function queuePortraitLoad(img,node,target,priority,onSuccess,onFailure){
  const previous=img.__portraitLoadJob;
  if(previous&&!previous.done){
+  // Keep an in-flight request alive when rotation temporarily hides its node.
+  // The same person may re-enter the viewport before the image finishes loading.
+  if(previous.target===target)return;
   previous.cancelled=true;
   if(previous.started){
    previous.done=true;
@@ -539,6 +542,7 @@ function updatePhotoField(now){
  photoRefreshAt=now;
  if(!points||!records.length)return;
  root.updateMatrixWorld(true);
+ camera.updateMatrixWorld(true);
  const candidates=[];
  const attr=pointGeometry.attributes.position;
  const v=new THREE.Vector3(),view=new THREE.Vector3(),projected=new THREE.Vector3();
@@ -569,7 +573,7 @@ function updatePhotoField(now){
   const focusLimit=Math.min(140,Math.max(82,innerWidth*.24));
   if(candidate&&candidate.centerDistance<=focusLimit&&candidate.i!==centerPhotoIndex){centerPhotoIndex=candidate.i;renderName(centerPhotoIndex)}
  }
- for(const [id,node] of photoNodes){if(!keep.has(id)){node.style.visibility='hidden';node.style.opacity='0';cancelPortraitLoad(node.querySelector('img'))}}
+ for(const [id,node] of photoNodes){if(!keep.has(id)){node.style.visibility='hidden';node.style.opacity='0'}}
  for(const item of chosen){
   let node=photoNodes.get(item.i);
   if(!node){
@@ -581,8 +585,9 @@ function updatePhotoField(now){
   }
   const scale=THREE.MathUtils.clamp(1.35-Math.abs(item.depth)/18,.78,1.15);
   const image=node.querySelector('img');
-  if(priorityIds.has(item.i)){image.loading='eager';image.fetchPriority='high'}
-  else{image.loading='lazy';image.fetchPriority='low'}
+  image.loading='eager';
+  image.fetchPriority=priorityIds.has(item.i)?'high':'auto';
+  node.dataset.imagePriority=priorityIds.has(item.i)?'high':'normal';
   node.style.visibility='visible';node.style.opacity='1';
   loadPhotoWithoutFlash(image,node,getPersonImage(records[item.i],'thumbnail'),records[item.i].full_name,priorityIds.has(item.i)?50:0);
   node.style.transform=`translate3d(${item.x}px,${item.y}px,0) translate(-50%,-50%) scale(${scale})`;
@@ -595,6 +600,8 @@ function updatePhotoField(now){
    if(node.style.visibility==='hidden'){
     const img=node.querySelector('img');
     if(img&&img.__portraitLoadJob&&!img.__portraitLoadJob.done){
+     // Never evict a node with an in-flight request; preserve its result for re-entry.
+     if(img.__portraitLoadJob.started)continue;
      const job=img.__portraitLoadJob;job.cancelled=true;job.done=true;
      img.onload=null;img.onerror=null;img.removeAttribute('src');
      activePortraitLoads=Math.max(0,activePortraitLoads-1);
