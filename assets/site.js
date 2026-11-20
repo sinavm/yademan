@@ -89,6 +89,8 @@ const RAW_IMAGE_BASE='https://raw.githubusercontent.com/ana-pic/JavidNaman/3c250
 const IMAGE_MANIFEST='./data/image_manifest.min.json';
 const DEFAULT_PERSON_IMAGE='./assets/yademan-mark.svg';
 let personImages=new Map(), recordNameCounts=new Map();
+// Gate portrait downloads until the local manifest has loaded or failed.
+let imageManifestReady=false;
 let photoRefreshAt=0, hovered=-1, selectedMarker=null;
 const searchLayer=document.querySelector('#search-layer');
 const searchInput=document.querySelector('#search');
@@ -246,14 +248,18 @@ async function loadImageManifest(){
    next.set(name,matches);
   }
   personImages=next;
+  imageManifestReady=true;
   console.info('Yademan image archive loaded',personImages.size,'unique names');
   if(selected>=0&&nameCard.classList.contains('visible'))renderName(selected);
  }catch(error){
   personImages=new Map();
-  console.error('Yademan image manifest could not be loaded; default portraits will be used',error);
+  imageManifestReady=true;
+  console.error('Yademan image manifest could not be loaded; original image URLs will be used as fallback',error);
+  if(selected>=0&&nameCard.classList.contains('visible'))renderName(selected);
  }
 }
 async function loadRecords(){
+ // Download records and the image index in parallel; do not start portrait requests before the index settles.
  const manifestTask=loadImageManifest();
  try{
   const response=await fetch('./data/javidnams_data.json');
@@ -266,7 +272,7 @@ async function loadRecords(){
    recordNameCounts.set(name,(recordNameCounts.get(name)||0)+1);
   }
   buildPeople();
-  manifestTask.catch(error=>console.error('Yademan image manifest failed',error));
+  await manifestTask;
  }catch(e){console.error('Yademan records could not be loaded',e)}
  finally{document.querySelector('#load-state')?.classList.add('is-hidden');requestAnimationFrame(()=>startEntryZoom())}
 }
@@ -285,7 +291,10 @@ function renderName(index){
  if(index<0||index>=records.length)return;
  const person=records[index];selected=index;
  if(selectedMarker&&points){selectedMarker.position.fromArray(points.geometry.attributes.position.array,index*3);selectedMarker.visible=true}
- personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;personImage.loading='eager';personImage.fetchPriority='high';loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person),person.full_name,100);nameCard.classList.add('visible');
+ personName.textContent=person.full_name;personAge.textContent=person.age||'سن ثبت نشده';personPlace.textContent=person.place||'محل ثبت نشده';personDate.textContent=person.date||'';personDate.hidden=!person.date;personImage.loading='eager';personImage.fetchPriority='high';
+ if(imageManifestReady)loadPhotoWithoutFlash(personImage,nameCard,getPersonImage(person),person.full_name,100);
+ else{cancelPortraitLoad(personImage);personImage.hidden=true}
+ nameCard.classList.add('visible');
 }
 function showName(index,fromPhoto=false){
  if(index<0||index>=records.length)return;
@@ -500,7 +509,7 @@ function updatePhotoField(now){
  const reveal=THREE.MathUtils.smoothstep(6.9-camera.position.z,0,1);
  photoField.style.opacity=String(reveal);
  photoField.style.pointerEvents=reveal>.2?'auto':'none';
- if(reveal<.02||now-photoRefreshAt<photoRefreshInterval)return;
+ if(!imageManifestReady||reveal<.02||now-photoRefreshAt<photoRefreshInterval)return;
  photoRefreshAt=now;
  if(!points||!records.length)return;
  root.updateMatrixWorld(true);
