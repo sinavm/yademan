@@ -1,0 +1,53 @@
+name: Lighthouse performance audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 4 * * 1"
+  push:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "assets/site.js"
+      - "assets/site.css"
+      - ".github/workflows/lighthouse-performance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse (${{ matrix.preset }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [mobile, desktop]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Lighthouse
+        run: npm install --global lighthouse@12
+      - name: Create report directory
+        run: mkdir -p "lighthouse-reports/${{ matrix.preset }}"
+      - name: Run three Lighthouse measurements
+        run: |
+          for run in 1 2 3; do
+            lighthouse "https://sinavm.github.io/yademan/" \
+              --preset="${{ matrix.preset }}" \
+              --output=json \
+              --output-path="lighthouse-reports/${{ matrix.preset }}/run-${run}.json" \
+              --chrome-flags="--headless --no-sandbox"
+          done
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-${{ matrix.preset }}
+          path: lighthouse-reports/${{ matrix.preset }}/*.json
+          if-no-files-found: error
+          retention-days: 30
