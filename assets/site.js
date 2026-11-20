@@ -232,7 +232,7 @@ function getPersonImage(person,variant='original'){
  const match=matches.length===1&&uniqueRecord?matches[0]:matches.find(item=>item.sourceUrl&&item.sourceUrl===person.image);
  if(!match)return person.image||'';
  // A shared flag asset is not an individual portrait.
- if(typeof match.path==='string'&&/(?:^|\\/)7cb40da7f_flag\\.(?:webp|png)$/i.test(match.path))return DEFAULT_PERSON_IMAGE;
+ if(typeof match.path==='string'){const flagName=match.path.split('/').pop().toLowerCase();if(flagName==='7cb40da7f_flag.webp'||flagName==='7cb40da7f_flag.png')return DEFAULT_PERSON_IMAGE;}
  const wantsThumb=variant==='thumbnail'||variant==='thumb';
  const wantsDetail=variant==='medium'||variant==='detail';
  const explicitPath=wantsThumb?match.thumbPath:wantsDetail?match.detailPath:'';
