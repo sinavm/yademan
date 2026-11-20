@@ -60,3 +60,16 @@ class ImageDeliveryAuditTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_portrait_requests_survive_temporary_rotation_hiding(self):
+        source = (Path(__file__).resolve().parents[1] / "assets" / "site.js").read_text(encoding="utf-8")
+        self.assertNotIn("cancelPortraitLoad(node.querySelector('img'))", source)
+        self.assertIn("if(!job.img.isConnected){", source)
+        self.assertNotIn("job.node&&job.node.style.visibility==='hidden'", source)
+
+    def test_globe_portraits_render_name_and_city_captions(self):
+        source = (Path(__file__).resolve().parents[1] / "assets" / "site.js").read_text(encoding="utf-8")
+        self.assertIn("photo-caption-name", source)
+        self.assertIn("photo-caption-place", source)
+        self.assertIn("captionPlace.textContent=records[item.i].place||'محل ثبت نشده'", source)
+        self.assertIn("image.loading='eager'", source)
