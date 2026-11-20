@@ -499,7 +499,9 @@ function loadPhotoWithoutFlash(img,node,src,personName='',priority=0){
  };
  const failure=()=>{
   if(target!==fallback){
-   const alternatives=target.startsWith(IMAGE_BASE)?[target.replace(IMAGE_BASE,RAW_IMAGE_BASE),fallback]:[fallback];
+   const isArchiveImage=target.startsWith(IMAGE_BASE)||target.startsWith(THUMB_IMAGE_BASE)||target.startsWith(MEDIUM_IMAGE_BASE);
+   const originalTarget=target.startsWith(THUMB_IMAGE_BASE)?target.replace(THUMB_IMAGE_BASE,IMAGE_BASE):target.startsWith(MEDIUM_IMAGE_BASE)?target.replace(MEDIUM_IMAGE_BASE,IMAGE_BASE):target;
+   const alternatives=isArchiveImage?[originalTarget,originalTarget.replace(IMAGE_BASE,RAW_IMAGE_BASE),fallback]:[fallback];
    const tryAlternative=index=>{
     const alternative=alternatives[index];
     if(!alternative){img.dataset.failedSrc=requested;img.dataset.resolvedFor='';img.dataset.resolvedSrc='';img.dataset.pendingSrc='';img.dataset.loadedSrc='';node.classList.add('image-missing');return}
